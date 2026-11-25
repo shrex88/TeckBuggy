@@ -81,8 +81,14 @@ def set_proposal_decision(
     notes: str = "",
     database_url: str = DATABASE_URL,
 ) -> dict[str, Any]:
-    """Record an explicit developer approval, rejection, modification request, or save-for-later decision."""
-    allowed_decisions = {"Approved", "Rejected", "Modification Requested", "Saved for Later"}
+    """Record an explicit developer approval, rejection, modification request, save-for-later, or manual apply decision."""
+    allowed_decisions = {
+        "Approved",
+        "Rejected",
+        "Modification Requested",
+        "Saved for Later",
+        "Verification Pending",
+    }
     if decision not in allowed_decisions:
         raise ApprovalError(f"Decision must be one of {sorted(allowed_decisions)}.")
 

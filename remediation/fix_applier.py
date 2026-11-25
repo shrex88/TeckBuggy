@@ -68,6 +68,20 @@ def apply_approved_remediation(
         raise RemediationApplyError(f"Failed to contact local remediation API: {exc}") from exc
 
     data = resp.json() if resp.headers.get("Content-Type", "").startswith("application/json") else {}
+    if resp.status_code == 404:
+        log_audit_event(
+            event_type="REMEDIATION_ENDPOINT_UNAVAILABLE",
+            target_url=base_url,
+            actor=approved_by,
+            action_id=clean_action,
+            status="manual_required",
+            details=f"Proposal #{proposal_id}: target {base_url} does not expose /api/remediation/apply (HTTP 404).",
+            database_url=database_url,
+        )
+        raise RemediationApplyError(
+            f"Target '{base_url}' does not expose /api/remediation/apply (HTTP 404). "
+            "Apply the approved fix manually to your application, then click 'Mark Applied Manually' and 'Verify Fix via Fresh Scan'."
+        )
     if resp.status_code != 200:
         err_msg = data.get("error") or f"HTTP {resp.status_code}"
         log_audit_event(
