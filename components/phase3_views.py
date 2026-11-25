@@ -18,6 +18,11 @@ from remediation import SUPPORTED_FRAMEWORKS, generate_remediation_playbook
 from reporting import ReportGenerationError, generate_pdf_report
 
 
+def _current_user_id() -> int | None:
+    user = st.session_state.get("auth_user")
+    return user.get("id") if isinstance(user, dict) else None
+
+
 def render_remediation_centre_page() -> None:
     """Render the Smart Remediation Centre with framework-specific fixes and controls."""
     render_page_header(
@@ -27,7 +32,7 @@ def render_remediation_centre_page() -> None:
         badge="DEFENSIVE GUIDANCE",
     )
 
-    findings = get_findings()
+    findings = get_findings(user_id=_current_user_id())
     if not findings:
         st.info("No findings recorded yet. Run a scan in 'New Security Scan' to generate remediation playbooks.")
         return
@@ -107,7 +112,7 @@ def render_security_proof_page() -> None:
         badge="BEFORE vs AFTER",
     )
 
-    scans = [s for s in get_all_scans() if s["status"] == "completed"]
+    scans = [s for s in get_all_scans(user_id=_current_user_id()) if s["status"] == "completed"]
     if len(scans) < 2:
         st.info(
             "Security Proof requires at least two completed scans of the same target "
@@ -211,7 +216,8 @@ def render_reports_page() -> None:
         badge="PDF EXPORT",
     )
 
-    scans = get_all_scans()
+    user_id = _current_user_id()
+    scans = get_all_scans(user_id=user_id)
     if not scans:
         st.info("No scans available yet. Complete a security scan before generating a PDF report.")
         return
@@ -246,7 +252,7 @@ def render_reports_page() -> None:
 
     st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
     st.subheader("Generated Report Registry")
-    reports = get_all_reports()
+    reports = get_all_reports(user_id=user_id)
     if reports:
         st.dataframe(pd.DataFrame(reports), use_container_width=True, hide_index=True)
     else:

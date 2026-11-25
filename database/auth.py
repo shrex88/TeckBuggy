@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import secrets
@@ -11,7 +12,28 @@ from sqlalchemy import func, or_, select
 
 from config import DATABASE_URL
 from database.database import get_db_url, get_session, init_db
-from database.models import UserAccount
+from database.models import AuditLog, Finding, Report, Scan, UserAccount
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _format_dt(dt: Optional[datetime]) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M UTC") if dt else "—"
+
+
+def _user_profile_dict(account: UserAccount) -> dict[str, Any]:
+    return {
+        "id": account.id,
+        "username": account.username,
+        "email": account.email,
+        "full_name": account.full_name,
+        "role": account.role,
+        "created_at": _format_dt(account.created_at),
+        "last_login_at": _format_dt(account.last_login_at),
+        "login_count": int(account.login_count or 0),
+    }
 
 
 class AuthError(ValueError):
@@ -87,22 +109,28 @@ def register_user(
         if existing is not None:
             raise AuthError("An account with that username or email already exists.")
 
+        now = _utc_now()
         account = UserAccount(
             username=clean_user,
             email=clean_email,
             full_name=clean_name,
             role="Security Analyst",
             password_hash=hash_password(password),
+            last_login_at=now,
+            login_count=1,
         )
         session.add(account)
         session.flush()
-        return {
-            "id": account.id,
-            "username": account.username,
-            "email": account.email,
-            "full_name": account.full_name,
-            "role": account.role,
-        }
+        session.add(
+            AuditLog(
+                user_id=account.id,
+                event_type="USER_REGISTERED",
+                actor=account.username,
+                status="success",
+                details=f"Account created for {account.email}",
+            )
+        )
+        return _user_profile_dict(account)
 
 
 def authenticate_user(
@@ -110,7 +138,7 @@ def authenticate_user(
     password: str,
     database_url: Optional[str] = None,
 ) -> Optional[dict[str, Any]]:
-    """Authenticate a user by username or email and return their profile dict."""
+    """Authenticate a user by username or email, update login telemetry, and return profile."""
     clean_id = identifier.strip().lower()
     if not clean_id or not password:
         return None
@@ -125,10 +153,57 @@ def authenticate_user(
         )
         if account is None or not verify_password(password, account.password_hash):
             return None
-        return {
-            "id": account.id,
-            "username": account.username,
-            "email": account.email,
-            "full_name": account.full_name,
-            "role": account.role,
-        }
+        account.last_login_at = _utc_now()
+        account.login_count = int(account.login_count or 0) + 1
+        session.add(
+            AuditLog(
+                user_id=account.id,
+                event_type="USER_LOGIN",
+                actor=account.username,
+                status="success",
+                details=f"Authenticated workspace session (login #{account.login_count})",
+            )
+        )
+        session.flush()
+        return _user_profile_dict(account)
+
+
+def get_user_account_summary(
+    user_id: int,
+    database_url: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
+    """Return real-time account metadata and scanned test statistics for a user."""
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
+        account = session.get(UserAccount, user_id)
+        if account is None:
+            return None
+
+        total_scans = session.scalar(
+            select(func.count(Scan.id)).where(Scan.user_id == user_id)
+        ) or 0
+        total_findings = session.scalar(
+            select(func.count(Finding.id)).join(Scan).where(Scan.user_id == user_id)
+        ) or 0
+        total_reports = session.scalar(
+            select(func.count(Report.id)).join(Scan).where(Scan.user_id == user_id)
+        ) or 0
+        recent_scans = list(
+            session.scalars(
+                select(Scan)
+                .where(Scan.user_id == user_id)
+                .order_by(Scan.scan_date.desc(), Scan.id.desc())
+                .limit(5)
+            ).all()
+        )
+        summary = _user_profile_dict(account)
+        summary.update(
+            {
+                "total_scans": int(total_scans),
+                "total_findings": int(total_findings),
+                "total_reports": int(total_reports),
+                "recent_targets": [s.target_url for s in recent_scans],
+            }
+        )
+        return summary

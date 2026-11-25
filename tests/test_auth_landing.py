@@ -134,3 +134,35 @@ def test_settings_reset_button_clears_workspace(auth_db_url: str, monkeypatch: p
     reset_btn[0].click().run()
     assert not at.exception
     assert get_dashboard_snapshot(auth_db_url, user_id=1)["total_scans"] == 0
+
+
+def test_realtime_login_telemetry_and_user_account_summary(auth_db_url: str) -> None:
+    from database import get_user_account_summary, save_scan_results
+
+    created = register_user(
+        username="telemetry_user",
+        email="telemetry@sentinel.ai",
+        password="StrongPassword123",
+        full_name="Telemetry Analyst",
+        database_url=auth_db_url,
+    )
+    assert created["login_count"] == 1
+    assert created["created_at"] != "—"
+    assert created["last_login_at"] != "—"
+
+    logged_in = authenticate_user("telemetry@sentinel.ai", "StrongPassword123", auth_db_url)
+    assert logged_in is not None
+    assert logged_in["login_count"] == 2
+
+    save_scan_results(
+        target_url="https://example.com",
+        security_score=88.0,
+        findings_data=[],
+        user_id=created["id"],
+        database_url=auth_db_url,
+    )
+    summary = get_user_account_summary(created["id"], database_url=auth_db_url)
+    assert summary is not None
+    assert summary["login_count"] == 2
+    assert summary["total_scans"] == 1
+    assert summary["recent_targets"] == ["https://example.com"]

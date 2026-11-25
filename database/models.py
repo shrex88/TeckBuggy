@@ -45,6 +45,10 @@ class Scan(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    user: Mapped[Optional["UserAccount"]] = relationship(
+        "UserAccount",
+        back_populates="scans",
+    )
 
     def __repr__(self) -> str:
         return (
@@ -455,6 +459,9 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("user_accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     event_type: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     target_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     actor: Mapped[str] = mapped_column(String(128), nullable=False, default="developer")
@@ -479,5 +486,14 @@ class UserAccount(Base):
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    scans: Mapped[List["Scan"]] = relationship(
+        "Scan",
+        back_populates="user",
     )
 

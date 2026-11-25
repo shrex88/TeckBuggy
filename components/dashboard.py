@@ -13,7 +13,7 @@ from components.charts import (
     build_vulnerability_distribution_chart,
 )
 from config import APP_SUBTITLE, APP_VERSION, DATABASE_PATH
-from database import get_latest_benchmark_run, reset_scan_workspace_data
+from database import get_latest_benchmark_run, get_user_account_summary, reset_scan_workspace_data
 
 
 def render_page_header(kicker: str, title: str, subtitle: str, badge: str) -> None:
@@ -362,6 +362,35 @@ def render_settings_page(snapshot: dict[str, Any]) -> None:
         subtitle="Read-only runtime configuration for Phase 1 foundation services.",
         badge="PHASE 1 ACTIVE",
     )
+
+    current_user = st.session_state.get("auth_user")
+    user_id = current_user.get("id") if isinstance(current_user, dict) else None
+    account_summary = get_user_account_summary(user_id) if user_id is not None else None
+    if account_summary:
+        st.markdown(
+            f"""
+            <div class="sentinel-panel">
+                <div class="panel-header">
+                    <span class="panel-title">User Account &amp; Real-Time Activity</span>
+                    <span class="panel-badge">{account_summary['role'].upper()}</span>
+                </div>
+                <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.45rem;">
+                    <strong>User:</strong> {account_summary['full_name']} (<code>@{account_summary['username']}</code>) · {account_summary['email']}
+                </p>
+                <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.45rem;">
+                    <strong>Account Created:</strong> <code>{account_summary['created_at']}</code> &nbsp;|&nbsp;
+                    <strong>Last Login:</strong> <code>{account_summary['last_login_at']}</code> &nbsp;|&nbsp;
+                    <strong>Total Logins:</strong> <code>{account_summary['login_count']}</code>
+                </p>
+                <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0;">
+                    <strong>Scanned Tests Run:</strong> <code>{account_summary['total_scans']}</code> &nbsp;|&nbsp;
+                    <strong>Findings Recorded:</strong> <code>{account_summary['total_findings']}</code> &nbsp;|&nbsp;
+                    <strong>Reports Generated:</strong> <code>{account_summary['total_reports']}</code>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     col1, col2 = st.columns(2, gap="medium")
     with col1:

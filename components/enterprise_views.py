@@ -114,7 +114,7 @@ def render_ai_copilot_page() -> None:
         badge="GEMINI READY" if is_gemini_configured() else "FALLBACK MODE",
     )
 
-    findings = get_findings()
+    findings = get_findings(user_id=(st.session_state.get("auth_user") or {}).get("id"))
     if not findings:
         st.info("No findings recorded yet. Run a scan first to generate AI remediation proposals.")
         return
@@ -340,7 +340,7 @@ def render_remediation_history_page() -> None:
 
     st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
     st.subheader("Immutable Governance Audit Log")
-    audits = get_audit_logs()
+    audits = get_audit_logs(user_id=(st.session_state.get("auth_user") or {}).get("id"))
     if audits:
         st.dataframe(pd.DataFrame(audits), use_container_width=True, hide_index=True)
     else:
@@ -356,7 +356,7 @@ def render_regression_guard_page() -> None:
         badge="REGRESSION GUARD",
     )
 
-    scans = [s for s in get_all_scans() if s["status"] == "completed"]
+    scans = [s for s in get_all_scans(user_id=(st.session_state.get("auth_user") or {}).get("id")) if s["status"] == "completed"]
     if len(scans) < 2:
         st.info("At least two completed scans of the same authorised target are required to run Regression Guard.")
     else:

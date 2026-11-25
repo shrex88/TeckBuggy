@@ -107,14 +107,21 @@ def init_db(database_url: Optional[str] = None) -> Engine:
         resolved_url = get_db_url(database_url)
         engine = get_engine(resolved_url)
         Base.metadata.create_all(bind=engine)
-        # Additive migration: ensure user_id exists on scans table in SQLite
+        # Additive migrations for existing SQLite databases
         if resolved_url.startswith("sqlite"):
+            migrations = (
+                "ALTER TABLE scans ADD COLUMN user_id INTEGER REFERENCES user_accounts(id)",
+                "ALTER TABLE user_accounts ADD COLUMN last_login_at DATETIME",
+                "ALTER TABLE user_accounts ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES user_accounts(id)",
+            )
             with engine.connect() as conn:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE scans ADD COLUMN user_id INTEGER REFERENCES user_accounts(id)")
-                    conn.commit()
-                except Exception:
-                    pass
+                for stmt in migrations:
+                    try:
+                        conn.exec_driver_sql(stmt)
+                        conn.commit()
+                    except Exception:
+                        pass
         return engine
     except SQLAlchemyError as exc:
         logger.exception("Failed to initialize database schema.")
@@ -274,11 +281,12 @@ def save_scan_results(
     findings_data: list[dict[str, Any]],
     user_id: int | None = None,
     status: str = "completed",
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
 ) -> int:
     """Persist a completed scan and its findings to SQLite, returning the new scan ID."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         scan = Scan(
             user_id=user_id,
             target_url=target_url,
@@ -306,12 +314,13 @@ def save_scan_results(
 
 
 def get_all_scans(
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
     user_id: int | None = None,
 ) -> list[dict[str, Any]]:
     """Return all recorded scans ordered newest first."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         stmt = select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc())
         if user_id is not None:
             stmt = stmt.where(Scan.user_id == user_id)
@@ -319,6 +328,7 @@ def get_all_scans(
         return [
             {
                 "id": s.id,
+                "user_id": s.user_id,
                 "target_url": s.target_url,
                 "scan_date": s.scan_date.strftime("%Y-%m-%d %H:%M UTC")
                 if s.scan_date
@@ -340,11 +350,12 @@ def get_findings(
     user_id: int | None = None,
     severity: str | None = None,
     owasp_category: str | None = None,
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """Query persisted findings with optional filters."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         stmt = select(Finding).join(Scan).order_by(Finding.risk_score.desc(), Finding.id.desc())
         if scan_id is not None:
             stmt = stmt.where(Finding.scan_id == scan_id)
@@ -377,11 +388,12 @@ def get_findings(
 def update_finding_status(
     finding_id: int,
     new_status: str,
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
 ) -> bool:
     """Update the triage status of a persisted finding."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         finding = session.get(Finding, finding_id)
         if finding is None:
             return False
@@ -393,26 +405,30 @@ def save_report_record(
     *,
     scan_id: int,
     report_path: str,
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
 ) -> int:
     """Persist a generated PDF report record linked to a scan."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         report = Report(scan_id=scan_id, report_path=report_path)
         session.add(report)
         session.flush()
         return int(report.id)
 
 
-def get_all_reports(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
+def get_all_reports(
+    database_url: Optional[str] = None,
+    user_id: int | None = None,
+) -> list[dict[str, Any]]:
     """Return all generated report records ordered newest first."""
-    init_db(database_url)
-    with get_session(database_url) as session:
-        reports = list(
-            session.scalars(
-                select(Report).order_by(Report.generated_at.desc(), Report.id.desc())
-            ).all()
-        )
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
+        stmt = select(Report).join(Scan).order_by(Report.generated_at.desc(), Report.id.desc())
+        if user_id is not None:
+            stmt = stmt.where(Scan.user_id == user_id)
+        reports = list(session.scalars(stmt).all())
         return [
             {
                 "id": r.id,
@@ -434,12 +450,15 @@ def log_audit_event(
     target_url: str | None = None,
     actor: str = "developer",
     action_id: str | None = None,
-    database_url: str = DATABASE_URL,
+    user_id: int | None = None,
+    database_url: Optional[str] = None,
 ) -> int:
     """Append an immutable audit log record to SQLite."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         entry = AuditLog(
+            user_id=user_id,
             event_type=event_type,
             target_url=target_url,
             actor=actor,
@@ -455,16 +474,17 @@ def log_audit_event(
 def get_audit_logs(
     *,
     limit: int = 100,
-    database_url: str = DATABASE_URL,
+    user_id: int | None = None,
+    database_url: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """Return recent audit log records newest first."""
-    init_db(database_url)
-    with get_session(database_url) as session:
-        rows = list(
-            session.scalars(
-                select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(limit)
-            ).all()
-        )
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
+        stmt = select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        if user_id is not None:
+            stmt = stmt.where(or_(AuditLog.user_id == user_id, AuditLog.user_id.is_(None)))
+        rows = list(session.scalars(stmt.limit(limit)).all())
         return [
             {
                 "id": r.id,

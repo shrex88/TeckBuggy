@@ -4,6 +4,7 @@ from database.auth import (
     AuthError,
     authenticate_user,
     ensure_default_admin,
+    get_user_account_summary,
     register_user,
 )
 from database.database import (
@@ -100,6 +101,7 @@ __all__ = [
     "get_latest_benchmark_run",
     "get_regression_alerts",
     "get_session",
+    "get_user_account_summary",
     "init_db",
     "log_audit_event",
     "register_user",
