@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+import html
 import socket
 from typing import Any
 
 import pandas as pd
 import streamlit as st
 
-from components.charts import build_risk_matrix_chart
+from components.charts import (
+    build_risk_matrix_chart,
+    build_vulnerability_distribution_chart,
+)
 from components.dashboard import render_page_header
 from config import APPLICATION_PROFILES, OWASP_CATEGORIES
 from database import get_all_scans, get_findings, update_finding_status
-from intelligence import classify_risk_level
+from intelligence import classify_risk_level, is_gemini_configured
+from intelligence.gemini_client import request_gemini_json
+from remediation import generate_remediation_playbook
 from scanner import TargetValidationError, run_security_scan
 
 
@@ -117,15 +123,153 @@ def render_new_scan_page() -> None:
         last_findings = get_findings(scan_id=last["scan_id"])
         if last_findings:
             st.markdown(
-                f"**Latest Scan Breakdown — `{last['target_url']}` (Score: {last['security_score']}/100 · {last['total_findings']} findings)**"
+                f"""
+                <div class="sentinel-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Latest Scan Breakdown — <code>{html.escape(str(last['target_url']))}</code></span>
+                        <span class="panel-badge">SCORE: {last['security_score']}/100 · {last['total_findings']} FINDINGS</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-            st.dataframe(
-                pd.DataFrame(last_findings)[
-                    ["rule_id", "severity", "risk_score", "title", "target_path", "evidence"]
-                ],
-                use_container_width=True,
-                hide_index=True,
+
+            rows_html: list[str] = []
+            severity_counts: dict[str, int] = {}
+            for item in last_findings:
+                sev = str(item.get("severity", "Info"))
+                sev_cls = sev.lower() if sev.lower() in {"critical", "high", "medium", "low", "info"} else "info"
+                severity_counts[sev] = severity_counts.get(sev, 0) + 1
+                risk_val = float(item.get("risk_score", 0.0))
+                bar_color = (
+                    "#ff3b5c" if risk_val >= 85
+                    else "#ff8a00" if risk_val >= 65
+                    else "#f5c542" if risk_val >= 40
+                    else "#10b981"
+                )
+                clean_evidence = str(item.get("evidence", "")).split(" [AI Risk Intelligence]")[0]
+                rows_html.append(
+                    f"""
+                    <tr>
+                        <td><code>{html.escape(str(item.get('rule_id', '')))}</code></td>
+                        <td><span class="severity-badge {sev_cls}">{html.escape(sev)}</span></td>
+                        <td>
+                            <div class="risk-pill-wrap">
+                                <span style="font-weight:700;min-width:38px;">{risk_val:.1f}</span>
+                                <div class="risk-bar-track">
+                                    <div class="risk-bar-fill" style="width:{min(max(risk_val, 0.0), 100.0):.0f}%;background:{bar_color};"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="font-weight:600;color:#f8fafc;">{html.escape(str(item.get('title', '')))}</td>
+                        <td><code>{html.escape(str(item.get('target_path', '/')))}</code></td>
+                        <td style="color:#94a3b8;font-size:0.8rem;">{html.escape(clean_evidence)}</td>
+                    </tr>
+                    """
+                )
+
+            st.markdown(
+                f"""
+                <div class="sentinel-table-wrap">
+                    <table class="sentinel-glass-table">
+                        <thead>
+                            <tr>
+                                <th>Rule ID</th>
+                                <th>Severity</th>
+                                <th>Risk Score</th>
+                                <th>Finding</th>
+                                <th>Path</th>
+                                <th>Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {"".join(rows_html)}
+                        </tbody>
+                    </table>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
+
+            g1, g2 = st.columns([1.4, 1.0], gap="medium")
+            with g1:
+                st.markdown(
+                    '<div class="sentinel-panel"><div class="panel-header"><span class="panel-title">Risk Score by Finding</span><span class="panel-badge">RISK GRAPH</span></div></div>',
+                    unsafe_allow_html=True,
+                )
+                st.plotly_chart(build_risk_matrix_chart(last_findings), use_container_width=True)
+            with g2:
+                st.markdown(
+                    '<div class="sentinel-panel"><div class="panel-header"><span class="panel-title">Severity Distribution</span><span class="panel-badge">POSTURE SPLIT</span></div></div>',
+                    unsafe_allow_html=True,
+                )
+                st.plotly_chart(build_vulnerability_distribution_chart(severity_counts), use_container_width=True)
+
+            st.markdown(
+                """
+                <div class="sentinel-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">AI Suggestions &amp; Required Changes</span>
+                        <span class="panel-badge">ACTIONABLE REMEDIATION</span>
+                    </div>
+                    <p style="color:#94A3B8;font-size:0.85rem;margin-bottom:0;">
+                        Prioritized changes required to harden your application based on the detected misconfigurations.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            for item in last_findings[:5]:
+                playbook = generate_remediation_playbook(item)
+                sev = str(item.get("severity", "Info"))
+                st.markdown(
+                    f"""
+                    <div class="ai-suggestion-card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <strong style="color:#f8fafc;font-size:0.94rem;">
+                                {html.escape(str(item.get('rule_id', '')))} · {html.escape(str(item.get('title', '')))}
+                            </strong>
+                            <span class="severity-badge {sev.lower() if sev.lower() in {'critical','high','medium','low','info'} else 'info'}">{html.escape(sev)}</span>
+                        </div>
+                        <div style="color:#cbd5e1;font-size:0.84rem;line-height:1.5;margin-bottom:6px;">
+                            <strong>Required Change:</strong> {html.escape(playbook.explanation)}
+                        </div>
+                        <div style="color:#00f0ff;font-size:0.8rem;font-family:'JetBrains Mono',monospace;">
+                            Fix: {html.escape(playbook.corrected_config.splitlines()[0] if playbook.corrected_config else '')}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            if st.button(
+                "Generate Gemini AI Action Summary",
+                key=f"btn_ai_scan_advice_{last['scan_id']}",
+                type="secondary",
+            ):
+                summary_prompt = (
+                    "You are an AppSec engineer. Summarize the top 3 concrete configuration changes "
+                    f"needed for {last['target_url']} (score {last['security_score']}/100). "
+                    "Findings: "
+                    + "; ".join(f"{f['rule_id']} ({f['severity']}): {f['title']}" for f in last_findings[:6])
+                    + ". Return JSON with keys: executive_summary (string) and priority_changes (list of 3 strings)."
+                )
+                with st.spinner("Generating AI remediation summary..."):
+                    ai_resp = request_gemini_json(summary_prompt) if is_gemini_configured() else None
+                if ai_resp and isinstance(ai_resp.get("priority_changes"), list):
+                    st.success(str(ai_resp.get("executive_summary", "AI remediation summary generated.")))
+                    for idx, ch in enumerate(ai_resp["priority_changes"][:5], start=1):
+                        st.markdown(f"**{idx}.** {ch}")
+                else:
+                    st.info(
+                        "Deterministic AI Plan: 1) Add strict Content-Security-Policy and X-Frame-Options/frame-ancestors headers, "
+                        "2) Enforce HTTPS/HSTS and Secure+HttpOnly+SameSite cookie flags, "
+                        "3) Add X-Content-Type-Options: nosniff, Referrer-Policy, and Permissions-Policy."
+                    )
+        else:
+            st.success(f"Zero findings detected for {last['target_url']} — Security Score: {last['security_score']}/100.")
+
         c_a, c_b = st.columns(2, gap="medium")
         with c_a:
             if st.button("View Findings", key="goto_findings_btn", use_container_width=True):
