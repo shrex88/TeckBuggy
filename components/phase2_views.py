@@ -114,6 +114,18 @@ def render_new_scan_page() -> None:
     last = st.session_state.get("last_scan_result")
     if last:
         st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
+        last_findings = get_findings(scan_id=last["scan_id"])
+        if last_findings:
+            st.markdown(
+                f"**Latest Scan Breakdown — `{last['target_url']}` (Score: {last['security_score']}/100 · {last['total_findings']} findings)**"
+            )
+            st.dataframe(
+                pd.DataFrame(last_findings)[
+                    ["rule_id", "severity", "risk_score", "title", "target_path", "evidence"]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
         c_a, c_b = st.columns(2, gap="medium")
         with c_a:
             if st.button("View Findings", key="goto_findings_btn", use_container_width=True):
@@ -146,10 +158,11 @@ def render_vulnerabilities_page() -> None:
 
     f1, f2, f3 = st.columns(3, gap="medium")
     with f1:
-        scan_options = {"All Scans": None}
+        scan_options: dict[str, int | None] = {}
         for s in scans:
             scan_options[f"#{s['id']} · {s['target_url']} ({s['scan_date']})"] = s["id"]
-        selected_scan_label = st.selectbox("Filter by Scan", list(scan_options.keys()))
+        scan_options["All Scans"] = None
+        selected_scan_label = st.selectbox("Filter by Scan", list(scan_options.keys()), index=0)
         selected_scan_id = scan_options[selected_scan_label]
     with f2:
         selected_sev = st.selectbox(
@@ -177,7 +190,7 @@ def render_vulnerabilities_page() -> None:
 
     df = pd.DataFrame(findings)
     st.dataframe(
-        df[["id", "rule_id", "title", "severity", "risk_score", "owasp_category", "target_path", "finding_status"]],
+        df[["scan_id", "id", "rule_id", "title", "severity", "risk_score", "owasp_category", "target_path", "finding_status"]],
         use_container_width=True,
         hide_index=True,
     )
