@@ -35,8 +35,6 @@ html, body, [class*="css"] {
         radial-gradient(ellipse 70% 60% at 50% 110%, rgba(236, 72, 153, 0.10) 0%, transparent 70%),
         linear-gradient(180deg, #030712 0%, #070d1d 50%, #030712 100%);
     background-attachment: fixed;
-    position: relative;
-    overflow-x: hidden;
 }
 
 /* Floating liquid ambient light orbs animation */
@@ -68,6 +66,13 @@ html, body, [class*="css"] {
     z-index: 0;
     pointer-events: none;
     animation: liquidDriftAlt 22s ease-in-out infinite alternate;
+}
+
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stHeader"] {
+    position: relative;
+    z-index: 1;
 }
 
 @keyframes liquidDrift {
@@ -128,14 +133,39 @@ header[data-testid="stHeader"] {
 
 /* Liquid Glass Sidebar */
 section[data-testid="stSidebar"] {
-    background: rgba(8, 14, 30, 0.75) !important;
+    background: rgba(8, 14, 30, 0.82) !important;
     backdrop-filter: blur(24px) saturate(190%) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: 10px 0 35px rgba(0, 0, 0, 0.35) !important;
+    z-index: 2 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+}
+
+section[data-testid="stSidebar"] > div:first-child,
+[data-testid="stSidebarContent"] {
+    height: 100% !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 240, 255, 0.35) transparent;
+}
+
+section[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar,
+[data-testid="stSidebarContent"]::-webkit-scrollbar {
+    width: 6px;
+}
+
+section[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar-thumb,
+[data-testid="stSidebarContent"]::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.35);
+    border-radius: 999px;
 }
 
 section[data-testid="stSidebar"] .block-container {
     padding-top: 1.25rem !important;
+    padding-bottom: 2rem !important;
 }
 
 .sidebar-brand {
@@ -203,14 +233,14 @@ section[data-testid="stSidebar"] .block-container {
 section[data-testid="stSidebar"] div.stButton > button {
     border-radius: 12px !important;
     text-align: left !important;
-    padding: 0.6rem 0.95rem !important;
-    font-size: 0.86rem !important;
+    padding: 0.48rem 0.9rem !important;
+    font-size: 0.85rem !important;
     font-weight: 600 !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
     background: rgba(15, 23, 42, 0.4) !important;
     color: var(--text-secondary) !important;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    margin-bottom: 0.25rem !important;
+    margin-bottom: 0.16rem !important;
     backdrop-filter: blur(12px) !important;
     position: relative;
     overflow: hidden;
