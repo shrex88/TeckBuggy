@@ -289,7 +289,7 @@ def render_new_scan_page() -> None:
                             <span class="severity-badge {sev.lower() if sev.lower() in {'critical','high','medium','low','info'} else 'info'}">{html.escape(sev)}</span>
                         </div>
                         <div style="color:#cbd5e1;font-size:0.84rem;line-height:1.5;margin-bottom:6px;">
-                            <strong>Required Change:</strong> {html.escape(playbook.explanation)}
+                            <strong>Required Change:</strong> {html.escape(playbook.recommended_fix)}
                         </div>
                         <div style="color:#00f0ff;font-size:0.8rem;font-family:'JetBrains Mono',monospace;">
                             Fix: {html.escape(playbook.corrected_config.splitlines()[0] if playbook.corrected_config else '')}
