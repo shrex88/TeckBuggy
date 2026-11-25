@@ -68,9 +68,9 @@ def request_gemini_json(
         _LAST_GEMINI_STATUS = "GEMINI_API_KEY not configured; using deterministic fallback."
         return None
 
-    primary = (model or os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
+    primary = (model or os.getenv("GEMINI_MODEL") or "gemini-4-hydrogen").strip()
     candidates: list[str] = []
-    for m in (primary, "gemini-3.5-flash-lite", "gemini-flash-latest"):
+    for m in (primary, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"):
         if m and m not in candidates:
             candidates.append(m)
 
@@ -80,7 +80,7 @@ def request_gemini_json(
 
         client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=15000),
+            http_options=types.HttpOptions(timeout=30000),
         )
     except Exception as exc:
         _LAST_GEMINI_STATUS = f"Gemini client init error: {type(exc).__name__}"
