@@ -462,3 +462,19 @@ class AuditLog(Base):
         DateTime(timezone=True), nullable=False, default=_utc_now
     )
 
+
+class UserAccount(Base):
+    """Registered user accounts for SENTINEL AI workspace authentication."""
+
+    __tablename__ = "user_accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(128), nullable=False, default="Security Analyst")
+    role: Mapped[str] = mapped_column(String(64), nullable=False, default="Security Analyst")
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+

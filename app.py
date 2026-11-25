@@ -8,6 +8,7 @@ from components import (
     render_ai_copilot_page,
     render_ai_intelligence_page,
     render_approval_centre_page,
+    render_landing_and_login,
     render_new_scan_page,
     render_overview_dashboard,
     render_regression_guard_page,
@@ -22,7 +23,7 @@ from components import (
     render_vulnerabilities_page,
 )
 from config import APP_NAME, APP_TAGLINE, ASSETS_DIR
-from database import DatabaseError, get_dashboard_snapshot, init_db
+from database import DatabaseError, ensure_default_admin, get_dashboard_snapshot, init_db
 
 
 def _load_custom_css() -> None:
@@ -47,17 +48,25 @@ def main() -> None:
 
     if "active_page" not in st.session_state:
         st.session_state["active_page"] = "overview"
+    if "auth_user" not in st.session_state:
+        st.session_state["auth_user"] = None
 
     try:
         init_db()
+        ensure_default_admin()
         snapshot = get_dashboard_snapshot()
     except DatabaseError as exc:
         st.error(f"Database initialization error: {exc}")
         st.stop()
 
+    if st.session_state["auth_user"] is None:
+        render_landing_and_login()
+        return
+
     selected_page = render_sidebar(
         active_page=st.session_state["active_page"],
         total_scans=snapshot["total_scans"],
+        auth_user=st.session_state["auth_user"],
     )
     if selected_page != st.session_state["active_page"]:
         st.session_state["active_page"] = selected_page

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import base64
 
+from typing import Any, Optional
+
 import streamlit as st
 
 from config import APP_NAME, APP_TAGLINE, APP_VERSION, ASSETS_DIR, NAV_SECTIONS
@@ -24,7 +26,11 @@ def _brand_logo_html() -> str:
     return '<div class="brand-shield">🛡</div>'
 
 
-def render_sidebar(active_page: str, total_scans: int) -> str:
+def render_sidebar(
+    active_page: str,
+    total_scans: int,
+    auth_user: Optional[dict[str, Any]] = None,
+) -> str:
     """Render the Sentinel AI sidebar and return the selected section ID."""
     logo_html = _brand_logo_html()
     with st.sidebar:
@@ -71,5 +77,24 @@ def render_sidebar(active_page: str, total_scans: int) -> str:
             """,
             unsafe_allow_html=True,
         )
+
+        if auth_user:
+            display_name = auth_user.get("full_name") or auth_user.get("username", "Analyst")
+            role = auth_user.get("role", "Security Analyst")
+            st.markdown(
+                f"""
+                <div style="margin-top:10px;padding:10px 12px;border-radius:10px;
+                    background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.16);
+                    font-size:0.8rem;">
+                    <div style="color:#F8FAFC;font-weight:600;">{display_name}</div>
+                    <div style="color:#94A3B8;font-size:0.74rem;">{role}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Sign Out", key="nav_logout", type="secondary", use_container_width=True):
+                st.session_state["auth_user"] = None
+                st.session_state["active_page"] = "overview"
+                st.rerun()
 
     return selected

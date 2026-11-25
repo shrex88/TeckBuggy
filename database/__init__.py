@@ -1,5 +1,11 @@
 """Database package for SENTINEL AI."""
 
+from database.auth import (
+    AuthError,
+    authenticate_user,
+    ensure_default_admin,
+    register_user,
+)
 from database.database import (
     DatabaseError,
     get_all_reports,
@@ -47,6 +53,7 @@ from database.models import (
     RollbackRecord,
     Scan,
     SimulatedFinding,
+    UserAccount,
     ValidationResult,
 )
 
@@ -54,6 +61,7 @@ __all__ = [
     "Achievement",
     "ApprovalRecord",
     "AuditLog",
+    "AuthError",
     "Base",
     "BenchmarkRun",
     "CompatibilityResult",
@@ -78,7 +86,10 @@ __all__ = [
     "RollbackRecord",
     "Scan",
     "SimulatedFinding",
+    "UserAccount",
     "ValidationResult",
+    "authenticate_user",
+    "ensure_default_admin",
     "get_all_reports",
     "get_all_scans",
     "get_audit_logs",
@@ -90,6 +101,7 @@ __all__ = [
     "get_session",
     "init_db",
     "log_audit_event",
+    "register_user",
     "reset_engine",
     "save_benchmark_run",
     "save_regression_alert",

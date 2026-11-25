@@ -125,6 +125,15 @@ def test_streamlit_navigation_and_empty_state(temp_db_url: str, monkeypatch: pyt
     at.run()
     assert not at.exception
 
+    # Landing + Login gate: sign in with default analyst credentials
+    at.text_input(key="login_identifier").set_value("admin@sentinel.ai")
+    at.text_input(key="login_password").set_value("Sentinel@2026")
+    sign_in_btn = [b for b in at.button if b.label == "Sign In to Workspace"]
+    assert len(sign_in_btn) == 1
+    sign_in_btn[0].click().run()
+    assert not at.exception
+    assert at.session_state["auth_user"] is not None
+
     # Empty state CTA button exists when DB has no scans; otherwise navigate via sidebar
     cta = [b for b in at.button if b.key == "cta_first_scan"]
     if cta:
