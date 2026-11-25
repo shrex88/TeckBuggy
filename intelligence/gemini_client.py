@@ -8,16 +8,47 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+_LAST_GEMINI_STATUS: str = "Not invoked yet"
+
 
 def is_gemini_configured() -> bool:
     """Return True if a non-empty GEMINI_API_KEY is available in the environment."""
     return bool((os.getenv("GEMINI_API_KEY") or "").strip())
+
+
+def get_last_gemini_status() -> str:
+    """Return a human-readable status message from the most recent Gemini API call."""
+    return _LAST_GEMINI_STATUS
+
+
+def _extract_json_dict(raw_text: str) -> dict[str, Any] | None:
+    """Parse a JSON object directly or from markdown code fences."""
+    cleaned = raw_text.strip()
+    if not cleaned:
+        return None
+    try:
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict):
+            return parsed
+    except json.JSONDecodeError:
+        pass
+
+    match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+    if match:
+        try:
+            parsed = json.loads(match.group(0))
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            return None
+    return None
 
 
 def request_gemini_json(
@@ -30,13 +61,16 @@ def request_gemini_json(
     Tries the configured model first, then safe fallback models on transient
     availability errors, returning None if all fail.
     """
+    global _LAST_GEMINI_STATUS
+
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
+        _LAST_GEMINI_STATUS = "GEMINI_API_KEY not configured; using deterministic fallback."
         return None
 
     primary = (model or os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
     candidates: list[str] = []
-    for m in (primary, "gemini-flash-latest", "gemini-2.5-flash-lite"):
+    for m in (primary, "gemini-3.5-flash-lite", "gemini-flash-latest"):
         if m and m not in candidates:
             candidates.append(m)
 
@@ -44,10 +78,15 @@ def request_gemini_json(
         from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=api_key)
-    except Exception:
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=15000),
+        )
+    except Exception as exc:
+        _LAST_GEMINI_STATUS = f"Gemini client init error: {type(exc).__name__}"
         return None
 
+    last_err = ""
     for candidate in candidates:
         try:
             response = client.models.generate_content(
@@ -58,13 +97,14 @@ def request_gemini_json(
                     temperature=0.2,
                 ),
             )
-            raw_text = (getattr(response, "text", None) or "").strip()
-            if not raw_text:
-                continue
-            parsed = json.loads(raw_text)
-            if isinstance(parsed, dict):
+            parsed = _extract_json_dict(getattr(response, "text", None) or "")
+            if parsed is not None:
+                _LAST_GEMINI_STATUS = f"Connected to {candidate}"
                 return parsed
-        except Exception:
+            last_err = f"{candidate} returned non-JSON output"
+        except Exception as exc:
+            last_err = f"{candidate}: {type(exc).__name__} ({str(exc)[:140]})"
             continue
 
+    _LAST_GEMINI_STATUS = f"Gemini temporarily unavailable ({last_err}); using deterministic fallback."
     return None

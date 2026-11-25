@@ -24,6 +24,7 @@ from intelligence import (
     is_gemini_configured,
     run_security_benchmark,
 )
+from intelligence.gemini_client import get_last_gemini_status
 from remediation import (
     SUPPORTED_FRAMEWORKS,
     ApprovalError,
@@ -136,9 +137,14 @@ def render_ai_copilot_page() -> None:
         with st.spinner("Generating validated remediation proposal..."):
             proposal = generate_ai_remediation_proposal(chosen, framework=framework)
             st.session_state["last_proposal"] = proposal
-            st.success(
-                f"Proposal #{proposal['id']} created ({proposal['source']}) · Action: {proposal['action_id']} · Status: {proposal['approval_status']}"
-            )
+            if proposal["source"] == "gemini_ai":
+                st.success(
+                    f"Gemini AI Proposal #{proposal['id']} created · Action: {proposal['action_id']} · Status: {proposal['approval_status']}"
+                )
+            else:
+                st.warning(
+                    f"Proposal #{proposal['id']} created using deterministic fallback · {get_last_gemini_status()}"
+                )
 
     proposal = st.session_state.get("last_proposal")
     if proposal:
