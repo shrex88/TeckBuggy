@@ -12,7 +12,6 @@ from components.enterprise_views import (
     render_remediation_history_page,
     render_security_benchmark_page,
 )
-from components.learning_views import render_learning_mode_page
 from components.phase2_views import (
     render_ai_intelligence_page,
     render_new_scan_page,
@@ -32,7 +31,6 @@ __all__ = [
     "render_ai_intelligence_page",
     "render_approval_centre_page",
     "render_coming_soon_page",
-    "render_learning_mode_page",
     "render_new_scan_page",
     "render_overview_dashboard",
     "render_regression_guard_page",

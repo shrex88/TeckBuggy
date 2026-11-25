@@ -1,4 +1,4 @@
-"""Tests for AI Remediation Confidence Engine and Security Learning Mode."""
+"""Tests for AI Remediation Confidence Engine and Integrated Workflow."""
 
 from __future__ import annotations
 
@@ -15,22 +15,12 @@ from intelligence import (
     generate_ai_remediation_proposal,
     list_confidence_outcomes,
 )
-from learning import (
-    QUIZ_BANK,
-    ask_security_tutor,
-    get_learning_dashboard_state,
-    get_lesson,
-    mark_lesson_completed,
-    set_learning_level,
-    submit_quiz_attempt,
-    verify_practical_challenge,
-)
 from remediation import (
     apply_approved_remediation,
     set_proposal_decision,
     verify_remediation_proposal,
 )
-from scanner import TargetValidationError, run_security_scan
+from scanner import run_security_scan
 from tests.conftest import (
     create_test_high_sec_app as create_high_security_app,
     create_test_low_sec_app as create_demo_app,
@@ -129,41 +119,6 @@ def test_remediation_confidence_engine_and_missing_evidence(temp_db_url: str) ->
     assert ev_bad_csp.confidence_score < ev_good.confidence_score
 
 
-def test_learning_mode_lessons_quizzes_tutor_and_challenges(temp_db_url: str) -> None:
-    for lvl in ("BEGINNER", "INTERMEDIATE", "ADVANCED"):
-        lesson = get_lesson("HDR-001", learning_level=lvl)
-        assert lesson.learning_level == lvl
-        assert "Flask" in lesson.framework_implementations
-
-    set_learning_level("INTERMEDIATE", database_url=temp_db_url)
-    assert mark_lesson_completed("HDR-001", "INTERMEDIATE", database_url=temp_db_url) is True
-
-    perfect_answers = {q.qid: q.correct_answer for q in QUIZ_BANK}
-    q_res = submit_quiz_attempt(answers=perfect_answers, database_url=temp_db_url)
-    assert q_res["score"] == q_res["total"]
-
-    reply = ask_security_tutor(
-        question="Why is HttpOnly important?",
-        learning_level="BEGINNER",
-        rule_id="COOKIE-001",
-        database_url=temp_db_url,
-    )
-    assert len(reply["answer"]) > 20
-
-    with pytest.raises(TargetValidationError):
-        verify_practical_challenge(
-            challenge_id="CHAL-CSP",
-            baseline_scan_id=1,
-            target_url="https://example.com",
-            database_url=temp_db_url,
-        )
-
-    state = get_learning_dashboard_state(database_url=temp_db_url)
-    assert state["learning_level"] == "INTERMEDIATE"
-    assert state["points"] >= 15
-    assert any(b["badge_id"] == "OWASP_EXPLORER" for b in state["achievements"])
-
-
 def test_full_integrated_workflow_detect_to_verify_and_confidence_outcome(
     two_live_apps: tuple[str, str], temp_db_url: str
 ) -> None:
@@ -174,8 +129,6 @@ def test_full_integrated_workflow_detect_to_verify_and_confidence_outcome(
         f for f in get_findings(scan_id=scan.scan_id, database_url=temp_db_url)
         if f["rule_id"] == "HDR-001"
     )
-
-    get_lesson("HDR-001", learning_level="BEGINNER")
 
     proposal = generate_ai_remediation_proposal(
         csp_finding, framework="Flask", use_gemini=False, database_url=temp_db_url

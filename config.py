@@ -118,7 +118,6 @@ NAV_SECTIONS: list[dict[str, str]] = [
     {"id": "remediation_history", "label": "Remediation History", "icon": "↺", "phase": "Audit"},
     {"id": "security_proof", "label": "Security Proof", "icon": "✓", "phase": "Verify"},
     {"id": "regression_guard", "label": "Security Regression Guard", "icon": "⚑", "phase": "Guard"},
-    {"id": "learning_mode", "label": "Security Learning Mode", "icon": "★", "phase": "Learn"},
     {"id": "scan_history", "label": "Scan History", "icon": "◷", "phase": "Ledger"},
     {"id": "reports", "label": "Reports", "icon": "▤", "phase": "PDF"},
     {"id": "settings", "label": "Settings", "icon": "⚙", "phase": "Config"},

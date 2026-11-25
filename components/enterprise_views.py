@@ -361,21 +361,32 @@ def render_regression_guard_page() -> None:
         st.info("At least two completed scans of the same authorised target are required to run Regression Guard.")
     else:
         scan_map = {
-            f"Scan #{s['id']} · {s['target_url']} · Score {s['security_score']}/100 ({s['scan_date']})": s["id"]
+            f"Scan #{s['id']} · {s['target_url']} · Score {s['security_score']}/100 ({s['scan_date']})": s
             for s in scans
         }
         keys = list(scan_map.keys())
         c1, c2 = st.columns(2, gap="medium")
         with c1:
-            base_lbl = st.selectbox("Verified Baseline Scan", keys, index=min(1, len(keys) - 1), key="reg_base")
-        with c2:
             latest_lbl = st.selectbox("Latest Scan", keys, index=0, key="reg_latest")
+        latest_scan = scan_map[latest_lbl]
+        comparable_keys = [
+            k for k, s in scan_map.items()
+            if s["id"] != latest_scan["id"]
+            and s["target_url"].rstrip("/") == latest_scan["target_url"].rstrip("/")
+        ]
+        with c2:
+            if comparable_keys:
+                base_lbl = st.selectbox("Verified Baseline Scan (Same Target)", comparable_keys, index=0, key="reg_base")
+            else:
+                st.warning(f"Only 1 completed scan exists for {latest_scan['target_url']}. Run a second scan of this target first.")
+                base_lbl = None
 
-        if st.button("Run Regression Check", key="run_reg_btn", type="primary"):
+        if base_lbl and st.button("Run Regression Check", key="run_reg_btn", type="primary"):
             try:
-                rep = evaluate_security_regression(scan_map[base_lbl], scan_map[latest_lbl])
+                rep = evaluate_security_regression(scan_map[base_lbl]["id"], latest_scan["id"])
                 st.session_state["last_regression"] = rep
             except RegressionGuardError as exc:
+                st.session_state.pop("last_regression", None)
                 st.error(str(exc))
 
     rep = st.session_state.get("last_regression")

@@ -132,7 +132,7 @@ def test_streamlit_navigation_and_empty_state(temp_db_url: str, monkeypatch: pyt
         assert not at.exception
         assert at.session_state["active_page"] == "new_scan"
 
-    # Verify all 15 sidebar navigation buttons work cleanly without exceptions
+    # Verify all 14 sidebar navigation buttons work cleanly without exceptions
     nav_keys = [
         "nav_overview",
         "nav_new_scan",
@@ -145,7 +145,6 @@ def test_streamlit_navigation_and_empty_state(temp_db_url: str, monkeypatch: pyt
         "nav_remediation_history",
         "nav_security_proof",
         "nav_regression_guard",
-        "nav_learning_mode",
         "nav_scan_history",
         "nav_reports",
         "nav_settings",

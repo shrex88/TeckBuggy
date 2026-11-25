@@ -12,9 +12,8 @@ SENTINEL AI is an evidence-driven web application security assessment, benchmark
 
 ## Architecture
 
-- **`app.py` / `config.py`** — Streamlit entrypoint, 15-section router, allowlisted action catalogue, and OWASP Top 10:2025 metadata.
+- **`app.py` / `config.py`** — Streamlit entrypoint, 14-section router, allowlisted action catalogue, and OWASP Top 10:2025 metadata.
 - **`scanner/`** — Strict local-only `target_validator.py` (SSRF, DNS rebinding, redirect protection), `header_scanner.py`, `cookie_scanner.py`, `tls_scanner.py`, `exposed_file_scanner.py` (with SPA soft-404 filtering), and `orchestrator.py`.
-- **`learning/`** — Security Learning Mode (`lesson_generator.py`, `quiz_engine.py`, `security_tutor.py`, `challenge_engine.py`, `progress_tracker.py`, `learning_engine.py`).
 - **`intelligence/`** — `owasp_mapper.py`, `risk_engine.py`, `benchmark.py`, `security_proof.py`, `regression_guard.py`, `remediation_confidence.py`, `gemini_client.py`, and `ai_remediation.py`.
 - **`remediation/`** — `fix_generator.py`, `fix_validator.py`, `regression_analyzer.py`, `approval_manager.py`, `fix_applier.py`, `rollback_manager.py`, and `verification_engine.py`.
 - **`reporting/`** — `pdf_generator.py` generating 16-section branded PDF reports from SQLite.
