@@ -5,10 +5,14 @@ from __future__ import annotations
 import streamlit as st
 
 from components import (
+    render_ai_intelligence_page,
     render_coming_soon_page,
+    render_new_scan_page,
     render_overview_dashboard,
+    render_scan_history_page,
     render_settings_page,
     render_sidebar,
+    render_vulnerabilities_page,
 )
 from config import APP_NAME, APP_TAGLINE, ASSETS_DIR
 from database import DatabaseError, get_dashboard_snapshot, init_db
@@ -128,6 +132,14 @@ def main() -> None:
     active = st.session_state["active_page"]
     if active == "overview":
         render_overview_dashboard(snapshot)
+    elif active == "new_scan":
+        render_new_scan_page()
+    elif active == "vulnerabilities":
+        render_vulnerabilities_page()
+    elif active == "ai_intelligence":
+        render_ai_intelligence_page()
+    elif active == "scan_history":
+        render_scan_history_page()
     elif active == "settings":
         render_settings_page(snapshot)
     elif active in COMING_SOON_MODULES:

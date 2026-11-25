@@ -13,7 +13,7 @@ REPORTS_DIR: Path = DATA_DIR / "reports"
 APP_NAME: str = "SENTINEL AI"
 APP_TAGLINE: str = "Detect. Prioritise. Protect."
 APP_SUBTITLE: str = "AI-Powered Web Application Security Intelligence Platform"
-APP_VERSION: str = "0.1.0-phase1"
+APP_VERSION: str = "0.2.0-phase2"
 
 DATABASE_PATH: Path = DATA_DIR / "sentinel_ai.db"
 DATABASE_URL: str = os.getenv(
@@ -23,6 +23,33 @@ DATABASE_URL: str = os.getenv(
 
 DEMO_LAB_HOST: str = os.getenv("SENTINEL_DEMO_HOST", "127.0.0.1")
 DEMO_LAB_PORT: int = int(os.getenv("SENTINEL_DEMO_PORT", "5050"))
+
+# Strict local target allowlist & HTTP safety limits (Phase 2)
+ALLOWED_LOCAL_HOSTS: frozenset[str] = frozenset({"localhost", "127.0.0.1", "::1"})
+ALLOWED_DOCKER_HOSTS: frozenset[str] = frozenset(
+    h.strip().lower()
+    for h in os.getenv("SENTINEL_ALLOWED_DOCKER_HOSTS", "demo-lab,sentinel-demo-lab").split(",")
+    if h.strip()
+)
+DEFAULT_REQUEST_TIMEOUT: float = 5.0
+MAX_REDIRECTS: int = 3
+MAX_RESPONSE_BYTES: int = 512 * 1024  # 512 KB cap for defensive inspection
+MAX_REQUESTS_PER_SCAN: int = 20
+
+APPLICATION_PROFILES: dict[str, dict[str, object]] = {
+    "Fintech / Payment Application": {
+        "data_sensitivity": 95.0,
+        "assumption": "Configured assumption: high-sensitivity financial/payment context (not proof of actual stored data).",
+    },
+    "Customer Portal": {
+        "data_sensitivity": 75.0,
+        "assumption": "Configured assumption: authenticated user/PII portal context (not proof of actual stored data).",
+    },
+    "General Web Application": {
+        "data_sensitivity": 50.0,
+        "assumption": "Configured assumption: standard public/internal web application context.",
+    },
+}
 
 NAV_SECTIONS: list[dict[str, str]] = [
     {"id": "overview", "label": "Overview", "icon": "◈", "phase": "Phase 1"},
@@ -45,14 +72,14 @@ SEVERITY_COLORS: dict[str, str] = {
 }
 
 OWASP_CATEGORIES: list[str] = [
-    "A01:2021 - Broken Access Control",
-    "A02:2021 - Cryptographic Failures",
-    "A03:2021 - Injection",
-    "A04:2021 - Insecure Design",
-    "A05:2021 - Security Misconfiguration",
-    "A06:2021 - Vulnerable and Outdated Components",
-    "A07:2021 - Identification and Authentication Failures",
-    "A08:2021 - Software and Data Integrity Failures",
-    "A09:2021 - Security Logging and Monitoring Failures",
-    "A10:2021 - Server-Side Request Forgery",
+    "A01:2025 - Broken Access Control",
+    "A02:2025 - Security Misconfiguration",
+    "A03:2025 - Software Supply Chain Failures",
+    "A04:2025 - Cryptographic Failures",
+    "A05:2025 - Injection",
+    "A06:2025 - Insecure Design",
+    "A07:2025 - Authentication Failures",
+    "A08:2025 - Software or Data Integrity Failures",
+    "A09:2025 - Security Logging and Alerting Failures",
+    "A10:2025 - Mishandling of Exceptional Conditions",
 ]

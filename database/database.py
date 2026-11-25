@@ -208,3 +208,115 @@ def get_dashboard_snapshot(database_url: str = DATABASE_URL) -> dict[str, Any]:
             "security_alerts": security_alerts,
             "total_reports": total_reports,
         }
+
+
+def save_scan_results(
+    *,
+    target_url: str,
+    security_score: float,
+    findings_data: list[dict[str, Any]],
+    status: str = "completed",
+    database_url: str = DATABASE_URL,
+) -> int:
+    """Persist a completed scan and its findings to SQLite, returning the new scan ID."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        scan = Scan(
+            target_url=target_url,
+            security_score=security_score,
+            total_findings=len(findings_data),
+            status=status,
+        )
+        for item in findings_data:
+            scan.findings.append(
+                Finding(
+                    rule_id=str(item["rule_id"]),
+                    target_path=str(item["target_path"]),
+                    title=str(item["title"]),
+                    severity=str(item["severity"]),
+                    risk_score=float(item["risk_score"]),
+                    evidence=str(item.get("evidence", "")),
+                    owasp_category=str(item["owasp_category"]),
+                    remediation=str(item.get("remediation", "")),
+                    finding_status=str(item.get("finding_status", "open")),
+                )
+            )
+        session.add(scan)
+        session.flush()
+        return int(scan.id)
+
+
+def get_all_scans(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
+    """Return all recorded scans ordered newest first."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        scans = list(
+            session.scalars(
+                select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc())
+            ).all()
+        )
+        return [
+            {
+                "id": s.id,
+                "target_url": s.target_url,
+                "scan_date": s.scan_date.strftime("%Y-%m-%d %H:%M UTC")
+                if s.scan_date
+                else "—",
+                "security_score": s.security_score,
+                "total_findings": s.total_findings,
+                "status": s.status,
+            }
+            for s in scans
+        ]
+
+
+def get_findings(
+    *,
+    scan_id: int | None = None,
+    severity: str | None = None,
+    owasp_category: str | None = None,
+    database_url: str = DATABASE_URL,
+) -> list[dict[str, Any]]:
+    """Query persisted findings with optional filters."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        stmt = select(Finding).order_by(Finding.risk_score.desc(), Finding.id.desc())
+        if scan_id is not None:
+            stmt = stmt.where(Finding.scan_id == scan_id)
+        if severity and severity != "All":
+            stmt = stmt.where(Finding.severity == severity)
+        if owasp_category and owasp_category != "All":
+            stmt = stmt.where(Finding.owasp_category == owasp_category)
+
+        rows = list(session.scalars(stmt).all())
+        return [
+            {
+                "id": f.id,
+                "scan_id": f.scan_id,
+                "rule_id": f.rule_id,
+                "target_path": f.target_path,
+                "title": f.title,
+                "severity": f.severity,
+                "risk_score": f.risk_score,
+                "evidence": f.evidence or "",
+                "owasp_category": f.owasp_category,
+                "remediation": f.remediation or "",
+                "finding_status": f.finding_status,
+            }
+            for f in rows
+        ]
+
+
+def update_finding_status(
+    finding_id: int,
+    new_status: str,
+    database_url: str = DATABASE_URL,
+) -> bool:
+    """Update the triage status of a persisted finding."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        finding = session.get(Finding, finding_id)
+        if finding is None:
+            return False
+        finding.finding_status = new_status
+        return True
