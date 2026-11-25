@@ -36,14 +36,15 @@ Set `GEMINI_API_KEY` in `.env` (never commit real secrets). If `GEMINI_API_KEY` 
 
 ## Starting SENTINEL AI
 
-### 1. Figma React + Vite Frontend (Recommended)
-Start the Flask REST API bridge and the React frontend in two terminals:
+### 1. Figma React UI + REST API Server (Recommended — `http://localhost:8501/`)
+Start the unified Flask server (serves the compiled Figma React frontend at `/` and REST API at `/api/*` on `http://localhost:8501/`):
 
 ```powershell
-# Terminal 1: REST API bridge on http://127.0.0.1:5055
 python -m api_server
+```
 
-# Terminal 2: React + Vite UI on http://127.0.0.1:5173
+Optional React hot-reload development mode:
+```powershell
 cd frontend
 npm install
 npm run dev

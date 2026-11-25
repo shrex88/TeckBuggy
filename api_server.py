@@ -370,5 +370,5 @@ def create_api_app(database_url: str = DATABASE_URL) -> Flask:
 if __name__ == "__main__":
     app = create_api_app()
     host = os.getenv("SENTINEL_API_HOST", "127.0.0.1")
-    port = int(os.getenv("SENTINEL_API_PORT", "5055"))
+    port = int(os.getenv("SENTINEL_API_PORT", "8501"))
     app.run(host=host, port=port, debug=False)
