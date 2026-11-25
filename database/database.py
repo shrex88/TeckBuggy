@@ -12,7 +12,19 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from config import DATA_DIR, DATABASE_URL
-from database.models import Base, Finding, Report, Scan
+from database.models import (
+    ApprovalRecord,
+    AuditLog,
+    Base,
+    BenchmarkRun,
+    ConfigBackup,
+    Finding,
+    RegressionAlert,
+    RemediationProposal,
+    Report,
+    RollbackRecord,
+    Scan,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -359,4 +371,154 @@ def get_all_reports(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
                 "report_path": r.report_path,
             }
             for r in reports
+        ]
+
+
+def log_audit_event(
+    *,
+    event_type: str,
+    status: str,
+    details: str,
+    target_url: str | None = None,
+    actor: str = "developer",
+    action_id: str | None = None,
+    database_url: str = DATABASE_URL,
+) -> int:
+    """Append an immutable audit log record to SQLite."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        entry = AuditLog(
+            event_type=event_type,
+            target_url=target_url,
+            actor=actor,
+            action_id=action_id,
+            status=status,
+            details=details,
+        )
+        session.add(entry)
+        session.flush()
+        return int(entry.id)
+
+
+def get_audit_logs(
+    *,
+    limit: int = 100,
+    database_url: str = DATABASE_URL,
+) -> list[dict[str, Any]]:
+    """Return recent audit log records newest first."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        rows = list(
+            session.scalars(
+                select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(limit)
+            ).all()
+        )
+        return [
+            {
+                "id": r.id,
+                "event_type": r.event_type,
+                "target_url": r.target_url or "—",
+                "actor": r.actor,
+                "action_id": r.action_id or "—",
+                "status": r.status,
+                "details": r.details,
+                "created_at": r.created_at.strftime("%Y-%m-%d %H:%M UTC") if r.created_at else "—",
+            }
+            for r in rows
+        ]
+
+
+def save_benchmark_run(
+    *,
+    high_sec_scan_id: int,
+    low_sec_scan_id: int,
+    high_sec_score: float,
+    low_sec_score: float,
+    summary_json: str,
+    database_url: str = DATABASE_URL,
+) -> int:
+    """Persist a Security Benchmark comparison run."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        run = BenchmarkRun(
+            high_sec_scan_id=high_sec_scan_id,
+            low_sec_scan_id=low_sec_scan_id,
+            high_sec_score=high_sec_score,
+            low_sec_score=low_sec_score,
+            summary_json=summary_json,
+        )
+        session.add(run)
+        session.flush()
+        return int(run.id)
+
+
+def get_latest_benchmark_run(database_url: str = DATABASE_URL) -> dict[str, Any] | None:
+    """Return the most recent persisted Security Benchmark run, if any."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        run = session.scalar(
+            select(BenchmarkRun).order_by(BenchmarkRun.created_at.desc(), BenchmarkRun.id.desc()).limit(1)
+        )
+        if run is None:
+            return None
+        return {
+            "id": run.id,
+            "high_sec_scan_id": run.high_sec_scan_id,
+            "low_sec_scan_id": run.low_sec_scan_id,
+            "high_sec_score": run.high_sec_score,
+            "low_sec_score": run.low_sec_score,
+            "summary_json": run.summary_json,
+            "created_at": run.created_at.strftime("%Y-%m-%d %H:%M UTC") if run.created_at else "—",
+        }
+
+
+def save_regression_alert(
+    *,
+    baseline_scan_id: int,
+    latest_scan_id: int,
+    target_url: str,
+    alert_type: str,
+    severity: str,
+    details: str,
+    database_url: str = DATABASE_URL,
+) -> int:
+    """Persist a Security Regression Guard alert."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        alert = RegressionAlert(
+            baseline_scan_id=baseline_scan_id,
+            latest_scan_id=latest_scan_id,
+            target_url=target_url,
+            alert_type=alert_type,
+            severity=severity,
+            details=details,
+        )
+        session.add(alert)
+        session.flush()
+        return int(alert.id)
+
+
+def get_regression_alerts(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
+    """Return persisted Security Regression Guard alerts newest first."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        rows = list(
+            session.scalars(
+                select(RegressionAlert).order_by(
+                    RegressionAlert.detected_at.desc(), RegressionAlert.id.desc()
+                )
+            ).all()
+        )
+        return [
+            {
+                "id": a.id,
+                "baseline_scan_id": a.baseline_scan_id,
+                "latest_scan_id": a.latest_scan_id,
+                "target_url": a.target_url,
+                "alert_type": a.alert_type,
+                "severity": a.severity,
+                "details": a.details,
+                "detected_at": a.detected_at.strftime("%Y-%m-%d %H:%M UTC") if a.detected_at else "—",
+            }
+            for a in rows
         ]

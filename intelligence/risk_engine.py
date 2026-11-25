@@ -38,6 +38,7 @@ class RiskAssessment:
     weighted_contributions: dict[str, float]
     explanation: str
     remediation_priority: str
+    fintech_impact: dict[str, str]
 
 
 def _clamp_0_100(value: float) -> float:
@@ -116,6 +117,8 @@ def assess_finding_risk(
         f"{profile_meta['assumption']}"
     )
 
+    fintech_impact = build_fintech_impact_analysis(finding, resolved_profile)
+
     return RiskAssessment(
         risk_score=total_score,
         risk_category=risk_category,
@@ -124,7 +127,46 @@ def assess_finding_risk(
         weighted_contributions=weighted_contributions,
         explanation=explanation,
         remediation_priority=priority,
+        fintech_impact=fintech_impact,
     )
+
+
+def build_fintech_impact_analysis(
+    finding: "StandardFinding",
+    application_profile: str,
+) -> dict[str, str]:
+    """Generate contextual Fintech & web application impact notes without claiming unverified breaches."""
+    rid = (finding.rule_id or "").upper()
+    is_fintech = application_profile == "Fintech / Payment Application"
+    prefix = "High-sensitivity payment context: " if is_fintech else f"{application_profile} context: "
+
+    if rid.startswith("COOKIE-"):
+        sessions = f"{prefix}Weak cookie flags increase exposure of authenticated customer sessions to XSS or CSRF."
+    elif rid == "HDR-001":
+        sessions = f"{prefix}Absent CSP increases script-injection risk against active customer sessions."
+    else:
+        sessions = f"{prefix}Indirect session impact depending on client-side execution controls."
+
+    if rid.startswith("TLS-") or rid in {"HDR-002", "COOKIE-002"}:
+        payment = f"{prefix}Transport or cookie encryption gaps weaken protection of payment-flow requests."
+    elif rid.startswith("FILE-"):
+        payment = f"{prefix}Exposed configuration endpoints may reveal topology or synthetic/test parameters."
+    else:
+        payment = f"{prefix}Hardening defense-in-depth reduces payment-interface attack surface."
+
+    confidentiality = (
+        f"{prefix}Potential confidentiality exposure if sensitive metadata or tokens are transmitted without strict controls (configured assumption, not proof of data breach)."
+    )
+    configuration = f"Direct configuration gap detected at '{finding.target_path}' ({finding.rule_id})."
+    availability = "Low direct availability impact; primarily a confidentiality/integrity hardening issue."
+
+    return {
+        "Customer Sessions": sessions,
+        "Payment Application Security": payment,
+        "Data Confidentiality": confidentiality,
+        "Application Configuration": configuration,
+        "Application Availability": availability,
+    }
 
 
 def compute_overall_security_score(assessments: list[RiskAssessment]) -> float:

@@ -1,14 +1,29 @@
 """AI Risk Intelligence & OWASP 2025 Mapping package for SENTINEL AI."""
 
+from intelligence.ai_remediation import (
+    generate_ai_remediation_proposal,
+    validate_gemini_proposal_payload,
+)
+from intelligence.benchmark import (
+    BenchmarkComparison,
+    run_security_benchmark,
+)
+from intelligence.gemini_client import is_gemini_configured
 from intelligence.owasp_mapper import (
     OWASP_A02_MISCONFIG,
     OWASP_A04_CRYPTO,
     OWASP_A07_AUTH,
     map_finding_to_owasp,
 )
+from intelligence.regression_guard import (
+    RegressionGuardError,
+    RegressionReport,
+    evaluate_security_regression,
+)
 from intelligence.risk_engine import (
     RiskAssessment,
     assess_finding_risk,
+    build_fintech_impact_analysis,
     classify_risk_level,
     compute_overall_security_score,
 )
@@ -19,15 +34,24 @@ from intelligence.security_proof import (
 )
 
 __all__ = [
+    "BenchmarkComparison",
     "OWASP_A02_MISCONFIG",
     "OWASP_A04_CRYPTO",
     "OWASP_A07_AUTH",
+    "RegressionGuardError",
+    "RegressionReport",
     "RiskAssessment",
     "SecurityProofError",
     "SecurityProofResult",
     "assess_finding_risk",
+    "build_fintech_impact_analysis",
     "classify_risk_level",
     "compare_scans",
     "compute_overall_security_score",
+    "evaluate_security_regression",
+    "generate_ai_remediation_proposal",
+    "is_gemini_configured",
     "map_finding_to_owasp",
+    "run_security_benchmark",
+    "validate_gemini_proposal_payload",
 ]

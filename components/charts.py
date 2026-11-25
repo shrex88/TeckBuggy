@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 import plotly.graph_objects as go
 
@@ -185,3 +185,93 @@ def build_security_proof_findings_chart(
     )
     fig.update_yaxes(dtick=1, gridcolor="rgba(148, 163, 184, 0.1)")
     return _apply_dark_layout(fig, height=270)
+
+
+def build_risk_matrix_chart(findings: list[dict[str, Any]]) -> go.Figure:
+    """Build an interactive Security Risk Matrix (Likelihood vs Severity/Impact)."""
+    sev_to_y = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4, "Info": 0.5}
+    sev_colors = {
+        "Critical": "#FF3B5C",
+        "High": "#FF8A00",
+        "Medium": "#F5C542",
+        "Low": "#00F0FF",
+        "Info": "#8B5CF6",
+    }
+
+    if not findings:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No findings available for Risk Matrix",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(size=13, color="#64748B"),
+        )
+        return _apply_dark_layout(fig, height=320)
+
+    x_vals: list[float] = []
+    y_vals: list[float] = []
+    sizes: list[float] = []
+    colors: list[str] = []
+    texts: list[str] = []
+
+    for f in findings:
+        score = float(f.get("risk_score", 0.0))
+        sev = str(f.get("severity", "Medium"))
+        # Likelihood approximated cleanly from normalized risk score
+        likelihood = max(1.0, min(5.0, round(score / 20.0, 2)))
+        impact = sev_to_y.get(sev, 2)
+        x_vals.append(likelihood)
+        y_vals.append(impact)
+        sizes.append(max(14.0, score * 0.35))
+        colors.append(sev_colors.get(sev, "#00F0FF"))
+        texts.append(f"{f.get('rule_id')} · {f.get('title')} (Risk {score:.1f})")
+
+    fig = go.Figure(
+        data=[
+            go.Scatter(
+                x=x_vals,
+                y=y_vals,
+                mode="markers",
+                marker=dict(size=sizes, color=colors, opacity=0.88, line=dict(color="#F8FAFC", width=1)),
+                text=texts,
+                hovertemplate="%{text}<br>Likelihood: %{x:.2f}/5<br>Impact Tier: %{y}<extra></extra>",
+            )
+        ]
+    )
+    fig.update_xaxes(title="Likelihood (1–5)", range=[0.5, 5.5], gridcolor="rgba(148, 163, 184, 0.12)")
+    fig.update_yaxes(
+        title="Severity Impact",
+        tickvals=[1, 2, 3, 4],
+        ticktext=["Low", "Medium", "High", "Critical"],
+        range=[0.4, 4.5],
+        gridcolor="rgba(148, 163, 184, 0.12)",
+    )
+    return _apply_dark_layout(fig, height=330)
+
+
+def build_benchmark_comparison_chart(
+    high_counts: dict[str, int],
+    low_counts: dict[str, int],
+) -> go.Figure:
+    """Build a grouped bar chart comparing Application A vs Application B findings by severity."""
+    severities = ["Critical", "High", "Medium", "Low"]
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                name="Application A (High-Security)",
+                x=severities,
+                y=[high_counts.get(s, 0) for s in severities],
+                marker_color="#00F0FF",
+            ),
+            go.Bar(
+                name="Application B (Low-Security)",
+                x=severities,
+                y=[low_counts.get(s, 0) for s in severities],
+                marker_color="#FF3B5C",
+            ),
+        ]
+    )
+    fig.update_layout(barmode="group", legend=dict(orientation="h", y=1.12))
+    fig.update_yaxes(dtick=1, gridcolor="rgba(148, 163, 184, 0.1)")
+    return _apply_dark_layout(fig, height=290)

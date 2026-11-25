@@ -23,6 +23,84 @@ DATABASE_URL: str = os.getenv(
 
 DEMO_LAB_HOST: str = os.getenv("SENTINEL_DEMO_HOST", "127.0.0.1")
 DEMO_LAB_PORT: int = int(os.getenv("SENTINEL_DEMO_PORT", "5050"))
+HIGH_SEC_HOST: str = os.getenv("SENTINEL_HIGH_SEC_HOST", "127.0.0.1")
+HIGH_SEC_PORT: int = int(os.getenv("SENTINEL_HIGH_SEC_PORT", "5051"))
+
+HIGH_SECURITY_APP_URL: str = f"http://{HIGH_SEC_HOST}:{HIGH_SEC_PORT}"
+LOW_SECURITY_APP_URL: str = f"http://{DEMO_LAB_HOST}:{DEMO_LAB_PORT}"
+
+REMEDIATION_API_TOKEN: str = os.getenv(
+    "SENTINEL_REMEDIATION_TOKEN",
+    "sentinel-local-lab-approval-token",
+)
+
+AUTHORISED_TARGETS: dict[str, dict[str, object]] = {
+    "Application A (High-Security Reference)": {
+        "url": HIGH_SECURITY_APP_URL,
+        "role": "high_security",
+        "remediable": False,
+        "description": "Read-only hardened local Flask reference application.",
+    },
+    "Application B (Low-Security Demo Lab)": {
+        "url": LOW_SECURITY_APP_URL,
+        "role": "low_security",
+        "remediable": True,
+        "description": "Configurable local Flask demonstration target with allowlisted remediation API.",
+    },
+}
+
+ALLOWLISTED_ACTIONS: dict[str, dict[str, str]] = {
+    "ENABLE_CSP": {
+        "rule_id": "HDR-001",
+        "setting": "csp_enabled",
+        "description": "Enable Content-Security-Policy header on responses.",
+    },
+    "ENABLE_FRAME_PROTECTION": {
+        "rule_id": "HDR-003",
+        "setting": "x_frame_options_enabled",
+        "description": "Enable X-Frame-Options: DENY clickjacking protection.",
+    },
+    "ENABLE_NOSNIFF": {
+        "rule_id": "HDR-004",
+        "setting": "x_content_type_options_enabled",
+        "description": "Enable X-Content-Type-Options: nosniff header.",
+    },
+    "ENABLE_REFERRER_POLICY": {
+        "rule_id": "HDR-005",
+        "setting": "referrer_policy_enabled",
+        "description": "Enable Referrer-Policy: strict-origin-when-cross-origin.",
+    },
+    "ENABLE_PERMISSIONS_POLICY": {
+        "rule_id": "HDR-006",
+        "setting": "permissions_policy_enabled",
+        "description": "Enable restrictive Permissions-Policy header.",
+    },
+    "ENABLE_HTTPONLY_COOKIE": {
+        "rule_id": "COOKIE-001",
+        "setting": "cookie_httponly_enabled",
+        "description": "Enforce HttpOnly flag on synthetic session cookies.",
+    },
+    "ENABLE_SECURE_COOKIE": {
+        "rule_id": "COOKIE-002",
+        "setting": "cookie_secure_enabled",
+        "description": "Enforce Secure flag on synthetic session cookies.",
+    },
+    "CONFIGURE_SAMESITE": {
+        "rule_id": "COOKIE-003",
+        "setting": "cookie_samesite_enabled",
+        "description": "Enforce SameSite=Lax on synthetic session cookies.",
+    },
+    "DISABLE_SYNTHETIC_CONFIG_EXPOSURE": {
+        "rule_id": "FILE-002",
+        "setting": "expose_config_endpoint",
+        "description": "Disable public /config.json synthetic configuration endpoint.",
+    },
+    "ENABLE_TLS_TEST_CONFIGURATION": {
+        "rule_id": "TLS-000",
+        "setting": "tls_test_metadata_enabled",
+        "description": "Enable local TLS test configuration flag.",
+    },
+}
 
 # Strict local target allowlist & HTTP safety limits (Phase 2)
 ALLOWED_LOCAL_HOSTS: frozenset[str] = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -52,15 +130,19 @@ APPLICATION_PROFILES: dict[str, dict[str, object]] = {
 }
 
 NAV_SECTIONS: list[dict[str, str]] = [
-    {"id": "overview", "label": "Overview", "icon": "◈", "phase": "Phase 1"},
-    {"id": "new_scan", "label": "New Security Scan", "icon": "⌖", "phase": "Phase 2"},
-    {"id": "vulnerabilities", "label": "Vulnerabilities", "icon": "⚠", "phase": "Phase 2"},
-    {"id": "ai_intelligence", "label": "AI Risk Intelligence", "icon": "✦", "phase": "Phase 3"},
-    {"id": "remediation", "label": "Remediation Centre", "icon": "⚒", "phase": "Phase 3"},
-    {"id": "security_proof", "label": "Security Proof", "icon": "✓", "phase": "Phase 3"},
-    {"id": "scan_history", "label": "Scan History", "icon": "◷", "phase": "Phase 2"},
-    {"id": "reports", "label": "Reports", "icon": "▤", "phase": "Phase 3"},
-    {"id": "settings", "label": "Settings", "icon": "⚙", "phase": "Phase 1"},
+    {"id": "overview", "label": "Overview", "icon": "◈", "phase": "Core"},
+    {"id": "new_scan", "label": "New Security Scan", "icon": "⌖", "phase": "Scanner"},
+    {"id": "security_benchmark", "label": "Security Benchmark", "icon": "⚖", "phase": "Benchmark"},
+    {"id": "vulnerabilities", "label": "Vulnerabilities", "icon": "⚠", "phase": "Findings"},
+    {"id": "ai_intelligence", "label": "AI Risk Intelligence", "icon": "✦", "phase": "Risk"},
+    {"id": "ai_copilot", "label": "AI Remediation Copilot", "icon": "✧", "phase": "Gemini"},
+    {"id": "approval_centre", "label": "Developer Approval Centre", "icon": "✔", "phase": "Governance"},
+    {"id": "remediation_history", "label": "Remediation History", "icon": "↺", "phase": "Audit"},
+    {"id": "security_proof", "label": "Security Proof", "icon": "✓", "phase": "Verify"},
+    {"id": "regression_guard", "label": "Security Regression Guard", "icon": "⚑", "phase": "Guard"},
+    {"id": "scan_history", "label": "Scan History", "icon": "◷", "phase": "Ledger"},
+    {"id": "reports", "label": "Reports", "icon": "▤", "phase": "PDF"},
+    {"id": "settings", "label": "Settings", "icon": "⚙", "phase": "Config"},
 ]
 
 SEVERITY_COLORS: dict[str, str] = {

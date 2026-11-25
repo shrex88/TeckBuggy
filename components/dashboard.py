@@ -13,6 +13,7 @@ from components.charts import (
     build_vulnerability_distribution_chart,
 )
 from config import APP_SUBTITLE, APP_VERSION, DATABASE_PATH, DEMO_LAB_HOST, DEMO_LAB_PORT
+from database import get_latest_benchmark_run
 
 
 def render_page_header(kicker: str, title: str, subtitle: str, badge: str) -> None:
@@ -116,7 +117,31 @@ def render_overview_dashboard(snapshot: dict[str, Any]) -> None:
     )
 
     _render_kpi_cards(snapshot)
-    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
+
+    # Quick Action Bar + Benchmark Summary
+    qa1, qa2, qa3 = st.columns(3, gap="medium")
+    with qa1:
+        if st.button("Start New Scan", key="ov_start_scan", type="primary", use_container_width=True):
+            st.session_state["active_page"] = "new_scan"
+            st.rerun()
+    with qa2:
+        if st.button("Security Benchmark", key="ov_benchmark", use_container_width=True):
+            st.session_state["active_page"] = "security_benchmark"
+            st.rerun()
+    with qa3:
+        if snapshot["total_vulnerabilities"] > 0:
+            if st.button("AI Remediation Copilot", key="ov_ai_remed", use_container_width=True):
+                st.session_state["active_page"] = "ai_copilot"
+                st.rerun()
+
+    latest_bench = get_latest_benchmark_run()
+    if latest_bench is not None:
+        b1, b2 = st.columns(2, gap="medium")
+        b1.metric("Benchmark · High-Security App A", f"{latest_bench['high_sec_score']:.1f}/100")
+        b2.metric("Benchmark · Low-Security App B", f"{latest_bench['low_sec_score']:.1f}/100")
+
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
     if not snapshot["has_scans"]:
         st.markdown(

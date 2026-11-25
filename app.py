@@ -1,16 +1,20 @@
-"""SENTINEL AI — Main Streamlit Application Entrypoint (Phase 1)."""
+"""SENTINEL AI — Main Streamlit Application Entrypoint."""
 
 from __future__ import annotations
 
 import streamlit as st
 
 from components import (
+    render_ai_copilot_page,
     render_ai_intelligence_page,
+    render_approval_centre_page,
     render_new_scan_page,
     render_overview_dashboard,
-    render_remediation_centre_page,
+    render_regression_guard_page,
+    render_remediation_history_page,
     render_reports_page,
     render_scan_history_page,
+    render_security_benchmark_page,
     render_security_proof_page,
     render_settings_page,
     render_sidebar,
@@ -18,80 +22,6 @@ from components import (
 )
 from config import APP_NAME, APP_TAGLINE, ASSETS_DIR
 from database import DatabaseError, get_dashboard_snapshot, init_db
-
-COMING_SOON_MODULES: dict[str, dict[str, object]] = {
-    "new_scan": {
-        "title": "New Security Scan",
-        "phase": "Phase 2",
-        "description": "Configure and launch automated web application security assessments against authorised targets.",
-        "capabilities": [
-            "HTTP security header & TLS posture inspection",
-            "Cookie flag & session hardening analysis",
-            "Sensitive endpoint & misconfiguration discovery",
-            "Real-time scan progress telemetry persisted to SQLite",
-        ],
-    },
-    "vulnerabilities": {
-        "title": "Vulnerabilities",
-        "phase": "Phase 2",
-        "description": "Filterable vulnerability inventory with evidence inspection, OWASP mapping, and triage workflows.",
-        "capabilities": [
-            "Severity, OWASP Top 10, and status filtering",
-            "Raw HTTP evidence & affected endpoint inspection",
-            "Finding lifecycle tracking (Open, Mitigated, Accepted Risk)",
-        ],
-    },
-    "ai_intelligence": {
-        "title": "AI Risk Intelligence",
-        "phase": "Phase 3",
-        "description": "AI-driven contextual risk scoring, exploitability correlation, and attack-path prioritisation.",
-        "capabilities": [
-            "Composite AI risk scoring beyond static CVSS",
-            "Chained misconfiguration & exposure correlation",
-            "Executive risk narrative generation",
-        ],
-    },
-    "remediation": {
-        "title": "Remediation Centre",
-        "phase": "Phase 3",
-        "description": "Actionable developer-ready remediation playbooks and configuration patches.",
-        "capabilities": [
-            "Framework-specific header & cookie hardening snippets",
-            "Prioritised fix queue ranked by risk reduction",
-            "Verification checklist linked to Security Proof",
-        ],
-    },
-    "security_proof": {
-        "title": "Security Proof",
-        "phase": "Phase 3",
-        "description": "Automated post-remediation verification and cryptographic audit trail.",
-        "capabilities": [
-            "Before/after diff verification against target endpoints",
-            "Regression checks for previously resolved findings",
-            "Compliance-ready verification evidence",
-        ],
-    },
-    "scan_history": {
-        "title": "Scan History",
-        "phase": "Phase 2",
-        "description": "Historical timeline of executed scans, posture trends, and comparative diffs.",
-        "capabilities": [
-            "Chronological scan ledger backed by SQLite",
-            "Security score trendlines across assessment runs",
-            "Target-by-target comparison view",
-        ],
-    },
-    "reports": {
-        "title": "Reports",
-        "phase": "Phase 3",
-        "description": "Exportable executive and technical security assessment reports.",
-        "capabilities": [
-            "Executive summary & technical appendix generation",
-            "Persistent report artifact registry in SQLite",
-            "Downloadable HTML / PDF / JSON bundles",
-        ],
-    },
-}
 
 
 def _load_custom_css() -> None:
@@ -103,7 +33,7 @@ def _load_custom_css() -> None:
 
 
 def main() -> None:
-    """Configure page, initialize database, and route active navigation view."""
+    """Configure page, initialize database, and route all 13 navigation views."""
     st.set_page_config(
         page_title=f"{APP_NAME} · {APP_TAGLINE}",
         page_icon="🛡",
@@ -131,27 +61,24 @@ def main() -> None:
         st.session_state["active_page"] = selected_page
         st.rerun()
 
-    active = st.session_state["active_page"]
-    if active == "overview":
-        render_overview_dashboard(snapshot)
-    elif active == "new_scan":
-        render_new_scan_page()
-    elif active == "vulnerabilities":
-        render_vulnerabilities_page()
-    elif active == "ai_intelligence":
-        render_ai_intelligence_page()
-    elif active == "remediation":
-        render_remediation_centre_page()
-    elif active == "security_proof":
-        render_security_proof_page()
-    elif active == "scan_history":
-        render_scan_history_page()
-    elif active == "reports":
-        render_reports_page()
-    elif active == "settings":
-        render_settings_page(snapshot)
-    else:
-        render_overview_dashboard(snapshot)
+    routes = {
+        "overview": lambda: render_overview_dashboard(snapshot),
+        "new_scan": render_new_scan_page,
+        "security_benchmark": render_security_benchmark_page,
+        "vulnerabilities": render_vulnerabilities_page,
+        "ai_intelligence": render_ai_intelligence_page,
+        "ai_copilot": render_ai_copilot_page,
+        "approval_centre": render_approval_centre_page,
+        "remediation_history": render_remediation_history_page,
+        "security_proof": render_security_proof_page,
+        "regression_guard": render_regression_guard_page,
+        "scan_history": render_scan_history_page,
+        "reports": render_reports_page,
+        "settings": lambda: render_settings_page(snapshot),
+    }
+
+    handler = routes.get(st.session_state["active_page"], routes["overview"])
+    handler()
 
 
 if __name__ == "__main__":

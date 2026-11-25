@@ -7,6 +7,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from components.charts import build_risk_matrix_chart
 from components.dashboard import render_page_header
 from config import APPLICATION_PROFILES, DEMO_LAB_HOST, DEMO_LAB_PORT, OWASP_CATEGORIES
 from database import get_all_scans, get_findings, update_finding_status
@@ -242,6 +243,13 @@ def render_ai_intelligence_page() -> None:
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+    st.subheader("Interactive Security Risk Matrix")
+    st.plotly_chart(
+        build_risk_matrix_chart(findings),
+        use_container_width=True,
+        config={"displayModeBar": False},
     )
 
     for f in findings[:15]:
