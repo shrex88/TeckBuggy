@@ -54,8 +54,20 @@ from scanner import TargetValidationError, run_security_scan
 
 def create_api_app(database_url: str = DATABASE_URL) -> Flask:
     """Create the local REST API server for the SENTINEL AI React frontend."""
-    app = Flask(__name__)
+    dist_dir = Path(__file__).resolve().parent / "frontend" / "dist"
+    app = Flask(
+        __name__,
+        static_folder=str(dist_dir) if dist_dir.exists() else None,
+        static_url_path="/",
+    )
     init_db(database_url)
+
+    @app.route("/", methods=["GET"])
+    def serve_frontend_index() -> Any:
+        index_file = dist_dir / "index.html"
+        if index_file.exists():
+            return send_file(index_file)
+        return jsonify({"service": "SENTINEL AI API", "status": "ok"}), 200
 
     @app.after_request
     def _cors(resp: Any) -> Any:

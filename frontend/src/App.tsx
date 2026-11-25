@@ -1342,10 +1342,10 @@ function Dashboard({
           ))}
         </nav>
         <div className="sidebar-footer">
-          <div className="workspace-avatar">NS</div>
+          <div className="workspace-avatar">SA</div>
           <div>
-            <strong>Northstar Labs</strong>
-            <span>Enterprise workspace</span>
+            <strong>SENTINEL AI</strong>
+            <span>Local Security Workspace</span>
           </div>
           <ChevronDown size={15} />
         </div>
@@ -1365,14 +1365,14 @@ function Dashboard({
           </div>
           <div className="dashboard-header-actions">
             <div className="environment-select">
-              <i /> Production <ChevronDown size={14} />
+              <i /> Localhost <ChevronDown size={14} />
             </div>
             <ThemeSwitcher compact theme={theme} setTheme={setTheme} />
-            <button className="icon-button notification-button">
+            <button className="icon-button notification-button" onClick={() => setActive('Vulnerabilities')}>
               <Bell size={17} />
               <i />
             </button>
-            <button className="profile-button">AM</button>
+            <button className="profile-button">SA</button>
           </div>
         </header>
 

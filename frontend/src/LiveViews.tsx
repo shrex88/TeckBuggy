@@ -472,8 +472,21 @@ export function ReportsView() {
 
 export function AuditHistoryView() {
   const [data, setData] = useState<Awaited<ReturnType<typeof sentinelApi.getAudit>> | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
   const reload = () => { sentinelApi.getAudit().then(setData).catch(() => {}) }
   useEffect(reload, [])
+
+  const handleRollback = async (backupUid: string) => {
+    setMsg(null)
+    try {
+      const res = await sentinelApi.rollbackBackup(backupUid)
+      setMsg(`Rolled back ${res.setting_key} to ${res.restored_value}`)
+      reload()
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Rollback failed')
+    }
+  }
+
   return (
     <div className="panel" style={{ padding: '1.5rem' }}>
       <div className="panel-heading">
@@ -482,6 +495,18 @@ export function AuditHistoryView() {
           <p>Configuration backups, rollback controls, and governance audit log</p>
         </div>
       </div>
+      {msg && <p style={{ color: '#10b981', marginBottom: '0.75rem' }}>{msg}</p>}
+      {data && data.backups.length > 0 && (
+        <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
+          <strong>Configuration Backups</strong>
+          {data.backups.map((b) => (
+            <div key={b.backup_uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+              <span><code>{b.backup_uid}</code> · {b.setting_key}: {b.original_value} → {b.applied_value}</span>
+              <button className="button" onClick={() => void handleRollback(b.backup_uid)}>Rollback</button>
+            </div>
+          ))}
+        </div>
+      )}
       {data && data.audit_logs.slice(0, 15).map((a) => (
         <div key={a.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
           <b>[{a.status}]</b> {a.event_type} · {a.details} <small style={{ opacity: 0.7 }}>({a.created_at})</small>
