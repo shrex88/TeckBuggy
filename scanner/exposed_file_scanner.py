@@ -1,7 +1,8 @@
 """Safe Exposed File & Configuration Endpoint Scanner for SENTINEL AI.
 
 Checks only a strictly limited predefined list using HEAD (and limited GET fallback)
-without downloading or storing sensitive file contents.
+without downloading or storing sensitive file contents. Includes soft-404 / SPA
+fallback filtering and Content-Type validation to prevent false positives.
 """
 
 from __future__ import annotations
@@ -22,6 +23,13 @@ PREDEFINED_EXPOSED_PATHS: tuple[str, ...] = (
     "/phpinfo.php",
     "/server-status",
 )
+
+# Paths that must never be flagged if the server returns an HTML SPA fallback
+NON_HTML_SENSITIVE_PATHS: frozenset[str] = frozenset({
+    "/.env",
+    "/config.json",
+    "/backup.zip",
+})
 
 PATH_METADATA: dict[str, dict[str, str]] = {
     "/.env": {
@@ -57,6 +65,43 @@ PATH_METADATA: dict[str, dict[str, str]] = {
 }
 
 
+def _probe_metadata(
+    http_session: requests.Session,
+    probe_url: str,
+) -> tuple[int, str, str] | None:
+    """Safely fetch (status_code, content_type, content_length) without buffering body."""
+    try:
+        resp = http_session.head(
+            probe_url,
+            timeout=DEFAULT_REQUEST_TIMEOUT,
+            allow_redirects=False,
+        )
+        if resp.status_code in {405, 501}:
+            with http_session.get(
+                probe_url,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
+                allow_redirects=False,
+                stream=True,
+            ) as get_resp:
+                return (
+                    get_resp.status_code,
+                    get_resp.headers.get("Content-Type", "unknown"),
+                    get_resp.headers.get("Content-Length", "unknown"),
+                )
+        return (
+            resp.status_code,
+            resp.headers.get("Content-Type", "unknown"),
+            resp.headers.get("Content-Length", "unknown"),
+        )
+    except requests.RequestException:
+        return None
+
+
+def _is_html_content_type(content_type: str) -> bool:
+    ct = content_type.lower()
+    return "text/html" in ct or "application/xhtml+xml" in ct
+
+
 def scan_exposed_files(
     target_url: str,
     *,
@@ -71,6 +116,14 @@ def scan_exposed_files(
     findings: list[StandardFinding] = []
     base = vt.normalized_url.rstrip("/")
 
+    # Baseline soft-404 / SPA catch-all detection on a guaranteed-nonexistent path
+    baseline_sig: tuple[int, str, str] | None = None
+    baseline_url = f"{base}/__sentinel_soft404_probe_9f3a__"
+    validate_target_url(baseline_url)
+    baseline_probe = _probe_metadata(http_session, baseline_url)
+    if baseline_probe is not None and baseline_probe[0] == 200:
+        baseline_sig = baseline_probe
+
     checked = 0
     for path in paths:
         if checked >= MAX_REQUESTS_PER_SCAN:
@@ -82,31 +135,19 @@ def scan_exposed_files(
         probe_url = f"{base}{path}"
         validate_target_url(probe_url)
 
-        try:
-            resp = http_session.head(
-                probe_url,
-                timeout=DEFAULT_REQUEST_TIMEOUT,
-                allow_redirects=False,
-            )
-            if resp.status_code in {405, 501}:
-                # Limited GET fallback: inspect headers/status only, never buffer body
-                with http_session.get(
-                    probe_url,
-                    timeout=DEFAULT_REQUEST_TIMEOUT,
-                    allow_redirects=False,
-                    stream=True,
-                ) as get_resp:
-                    status_code = get_resp.status_code
-                    content_type = get_resp.headers.get("Content-Type", "unknown")
-                    content_length = get_resp.headers.get("Content-Length", "unknown")
-            else:
-                status_code = resp.status_code
-                content_type = resp.headers.get("Content-Type", "unknown")
-                content_length = resp.headers.get("Content-Length", "unknown")
-        except requests.RequestException:
+        probe_res = _probe_metadata(http_session, probe_url)
+        if probe_res is None:
             continue
 
+        status_code, content_type, content_length = probe_res
+
         if status_code == 200:
+            # Filter out SPA catch-all / soft-404 responses
+            if baseline_sig is not None and probe_res == baseline_sig:
+                continue
+            if path in NON_HTML_SENSITIVE_PATHS and _is_html_content_type(content_type):
+                continue
+
             meta = PATH_METADATA[path]
             findings.append(
                 StandardFinding(

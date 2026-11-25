@@ -13,7 +13,7 @@ from components.charts import (
 )
 from components.dashboard import render_page_header
 from database import get_all_reports, get_all_scans, get_findings, update_finding_status
-from intelligence import SecurityProofError, compare_scans
+from intelligence import SecurityProofError, classify_risk_level, compare_scans
 from remediation import SUPPORTED_FRAMEWORKS, generate_remediation_playbook
 from reporting import ReportGenerationError, generate_pdf_report
 
@@ -43,13 +43,14 @@ def render_remediation_centre_page() -> None:
         playbook = generate_remediation_playbook(f)
         snippet = playbook.snippets.get(framework, playbook.corrected_config)
         reviewed_badge = "REVIEWED" if f["finding_status"] == "in_progress" else f["finding_status"].upper()
+        ai_risk_level = classify_risk_level(playbook.risk_score).upper()
 
         st.markdown(
             f"""
             <div class="sentinel-panel">
                 <div class="panel-header">
                     <span class="panel-title">{playbook.rule_id} · {playbook.finding_title}</span>
-                    <span class="panel-badge">{playbook.severity.upper()} · RISK {playbook.risk_score:.1f}/100 · {reviewed_badge}</span>
+                    <span class="panel-badge">AI RISK: {ai_risk_level} ({playbook.risk_score:.1f}/100) · {reviewed_badge}</span>
                 </div>
                 <p style="color:#CBD5E1; font-size:0.86rem; margin-bottom:0.4rem;">
                     <strong>Recommended Fix:</strong> {playbook.recommended_fix}

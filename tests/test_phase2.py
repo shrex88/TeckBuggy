@@ -263,3 +263,23 @@ def test_end_to_end_scan_against_live_demo_lab_and_db(
     assert snapshot["total_scans"] == 1
     assert snapshot["total_vulnerabilities"] == result.total_findings
     assert snapshot["overall_security_score"] == result.security_score
+
+
+def test_exposed_file_scanner_ignores_spa_html_fallbacks() -> None:
+    from scanner.exposed_file_scanner import scan_exposed_files
+
+    mock_session = MagicMock()
+    spa_resp = MagicMock()
+    spa_resp.status_code = 200
+    spa_resp.headers = {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "7863",
+    }
+    mock_session.head.return_value = spa_resp
+
+    findings = scan_exposed_files(
+        "http://127.0.0.1:8501",
+        session=mock_session,
+        rate_limit_delay=0.0,
+    )
+    assert findings == []
