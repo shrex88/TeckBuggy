@@ -36,6 +36,10 @@ html, body, [class*="css"] {
 /* Clean up default Streamlit chrome while keeping sidebar toggle */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
+[data-testid="stAppDeployButton"],
+.stDeployButton {
+    display: none !important;
+}
 header[data-testid="stHeader"] {
     background: rgba(6, 10, 19, 0.72);
     backdrop-filter: blur(10px);
