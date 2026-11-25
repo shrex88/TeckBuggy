@@ -8,10 +8,14 @@ import pytest
 
 from database import (
     AuthError,
+    Scan,
     authenticate_user,
     ensure_default_admin,
+    get_dashboard_snapshot,
+    get_session,
     register_user,
     reset_engine,
+    reset_scan_workspace_data,
 )
 
 
@@ -66,3 +70,24 @@ def test_register_user_and_duplicate_rejection(auth_db_url: str) -> None:
             password="123",
             database_url=auth_db_url,
         )
+
+
+def test_reset_scan_workspace_data_preserves_users(auth_db_url: str) -> None:
+    ensure_default_admin(auth_db_url)
+    with get_session(auth_db_url) as session:
+        session.add(
+            Scan(
+                target_url="http://127.0.0.1:8000/",
+                security_score=60.0,
+                total_findings=3,
+                status="completed",
+            )
+        )
+
+    assert get_dashboard_snapshot(auth_db_url)["has_scans"] is True
+    reset_scan_workspace_data(auth_db_url)
+
+    snap = get_dashboard_snapshot(auth_db_url)
+    assert snap["has_scans"] is False
+    assert snap["total_scans"] == 0
+    assert authenticate_user("admin@sentinel.ai", "Sentinel@2026", auth_db_url) is not None

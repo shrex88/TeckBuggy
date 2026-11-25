@@ -7,23 +7,28 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator, Optional
 
-from sqlalchemy import Engine, create_engine, event, func, select
+from sqlalchemy import Engine, create_engine, delete, event, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from config import DATA_DIR, DATABASE_URL
+from config import DATA_DIR, DATABASE_URL, REPORTS_DIR
 from database.models import (
     ApprovalRecord,
     AuditLog,
     Base,
     BenchmarkRun,
+    ConfidenceFactor,
+    ConfidenceOutcome,
     ConfigBackup,
     Finding,
     RegressionAlert,
+    RegressionWarning,
+    RemediationEvaluation,
     RemediationProposal,
     Report,
     RollbackRecord,
     Scan,
+    ValidationResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -522,3 +527,37 @@ def get_regression_alerts(database_url: str = DATABASE_URL) -> list[dict[str, An
             }
             for a in rows
         ]
+
+
+def reset_scan_workspace_data(database_url: str = DATABASE_URL) -> None:
+    """Clear operational scan, finding, proposal, audit, and report records on new login.
+
+    User accounts (`user_accounts`) are preserved so authentication credentials remain intact.
+    """
+    init_db(database_url)
+    with get_session(database_url) as session:
+        for model in (
+            ConfidenceFactor,
+            ValidationResult,
+            RegressionWarning,
+            RemediationEvaluation,
+            ConfidenceOutcome,
+            ApprovalRecord,
+            RollbackRecord,
+            ConfigBackup,
+            RemediationProposal,
+            Finding,
+            Report,
+            Scan,
+            BenchmarkRun,
+            RegressionAlert,
+            AuditLog,
+        ):
+            session.execute(delete(model))
+
+    if REPORTS_DIR.exists():
+        for pdf_file in REPORTS_DIR.glob("*.pdf"):
+            try:
+                pdf_file.unlink()
+            except OSError:
+                logger.warning("Could not remove old report file: %s", pdf_file)

@@ -7,7 +7,12 @@ import base64
 import streamlit as st
 
 from config import APP_NAME, APP_TAGLINE, APP_VERSION, ASSETS_DIR
-from database import AuthError, authenticate_user, register_user
+from database import (
+    AuthError,
+    authenticate_user,
+    register_user,
+    reset_scan_workspace_data,
+)
 
 
 def _logo_img_html(size_px: int = 58) -> str:
@@ -222,6 +227,7 @@ def render_landing_and_login() -> None:
                     if user is None:
                         st.error("Invalid username/email or password.")
                     else:
+                        reset_scan_workspace_data()
                         st.session_state["auth_user"] = user
                         st.session_state["active_page"] = "overview"
                         st.rerun()
@@ -251,6 +257,7 @@ def render_landing_and_login() -> None:
                                 password=reg_pass,
                                 full_name=full_name,
                             )
+                            reset_scan_workspace_data()
                             st.session_state["auth_user"] = user
                             st.session_state["active_page"] = "overview"
                             st.rerun()
