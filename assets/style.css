@@ -33,15 +33,24 @@ html, body, [class*="css"] {
         linear-gradient(180deg, #060a13 0%, #090f1d 100%);
 }
 
-/* Clean up default Streamlit chrome while keeping sidebar toggle */
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
+/* Clean up default Streamlit chrome while keeping sidebar toggle clearly visible */
+#MainMenu,
+[data-testid="stMainMenu"],
+footer,
 [data-testid="stAppDeployButton"],
 .stDeployButton,
-[data-testid="stToolbar"],
 [data-testid="stToolbarActions"],
 [data-testid="stStatusWidget"] {
     display: none !important;
+}
+[data-testid="stExpandSidebarButton"],
+[data-testid="stSidebarCollapseButton"] {
+    display: flex !important;
+    visibility: visible !important;
+    color: var(--cyan) !important;
+    border: 1px solid rgba(0, 240, 255, 0.35) !important;
+    border-radius: 8px !important;
+    background: rgba(15, 23, 42, 0.85) !important;
 }
 header[data-testid="stHeader"] {
     background: rgba(6, 10, 19, 0.72);
