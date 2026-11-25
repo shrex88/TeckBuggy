@@ -6,10 +6,12 @@ import streamlit as st
 
 from components import (
     render_ai_intelligence_page,
-    render_coming_soon_page,
     render_new_scan_page,
     render_overview_dashboard,
+    render_remediation_centre_page,
+    render_reports_page,
     render_scan_history_page,
+    render_security_proof_page,
     render_settings_page,
     render_sidebar,
     render_vulnerabilities_page,
@@ -138,18 +140,16 @@ def main() -> None:
         render_vulnerabilities_page()
     elif active == "ai_intelligence":
         render_ai_intelligence_page()
+    elif active == "remediation":
+        render_remediation_centre_page()
+    elif active == "security_proof":
+        render_security_proof_page()
     elif active == "scan_history":
         render_scan_history_page()
+    elif active == "reports":
+        render_reports_page()
     elif active == "settings":
         render_settings_page(snapshot)
-    elif active in COMING_SOON_MODULES:
-        meta = COMING_SOON_MODULES[active]
-        render_coming_soon_page(
-            title=str(meta["title"]),
-            phase=str(meta["phase"]),
-            description=str(meta["description"]),
-            planned_capabilities=list(meta["capabilities"]),  # type: ignore[arg-type]
-        )
     else:
         render_overview_dashboard(snapshot)
 

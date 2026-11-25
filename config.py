@@ -13,7 +13,7 @@ REPORTS_DIR: Path = DATA_DIR / "reports"
 APP_NAME: str = "SENTINEL AI"
 APP_TAGLINE: str = "Detect. Prioritise. Protect."
 APP_SUBTITLE: str = "AI-Powered Web Application Security Intelligence Platform"
-APP_VERSION: str = "0.2.0-phase2"
+APP_VERSION: str = "1.0.0"
 
 DATABASE_PATH: Path = DATA_DIR / "sentinel_ai.db"
 DATABASE_URL: str = os.getenv(

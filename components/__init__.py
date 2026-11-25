@@ -11,6 +11,11 @@ from components.phase2_views import (
     render_scan_history_page,
     render_vulnerabilities_page,
 )
+from components.phase3_views import (
+    render_remediation_centre_page,
+    render_reports_page,
+    render_security_proof_page,
+)
 from components.sidebar import render_sidebar
 
 __all__ = [
@@ -18,7 +23,10 @@ __all__ = [
     "render_coming_soon_page",
     "render_new_scan_page",
     "render_overview_dashboard",
+    "render_remediation_centre_page",
+    "render_reports_page",
     "render_scan_history_page",
+    "render_security_proof_page",
     "render_settings_page",
     "render_sidebar",
     "render_vulnerabilities_page",

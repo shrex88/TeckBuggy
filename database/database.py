@@ -264,6 +264,9 @@ def get_all_scans(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
                 else "—",
                 "security_score": s.security_score,
                 "total_findings": s.total_findings,
+                "critical_findings": sum(
+                    1 for f in s.findings if (f.severity or "").lower() == "critical"
+                ),
                 "status": s.status,
             }
             for s in scans
@@ -320,3 +323,40 @@ def update_finding_status(
             return False
         finding.finding_status = new_status
         return True
+
+
+def save_report_record(
+    *,
+    scan_id: int,
+    report_path: str,
+    database_url: str = DATABASE_URL,
+) -> int:
+    """Persist a generated PDF report record linked to a scan."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        report = Report(scan_id=scan_id, report_path=report_path)
+        session.add(report)
+        session.flush()
+        return int(report.id)
+
+
+def get_all_reports(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
+    """Return all generated report records ordered newest first."""
+    init_db(database_url)
+    with get_session(database_url) as session:
+        reports = list(
+            session.scalars(
+                select(Report).order_by(Report.generated_at.desc(), Report.id.desc())
+            ).all()
+        )
+        return [
+            {
+                "id": r.id,
+                "scan_id": r.scan_id,
+                "generated_at": r.generated_at.strftime("%Y-%m-%d %H:%M UTC")
+                if r.generated_at
+                else "—",
+                "report_path": r.report_path,
+            }
+            for r in reports
+        ]

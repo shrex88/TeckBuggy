@@ -2,6 +2,7 @@
 
 from database.database import (
     DatabaseError,
+    get_all_reports,
     get_all_scans,
     get_dashboard_snapshot,
     get_engine,
@@ -9,6 +10,7 @@ from database.database import (
     get_session,
     init_db,
     reset_engine,
+    save_report_record,
     save_scan_results,
     update_finding_status,
 )
@@ -20,6 +22,7 @@ __all__ = [
     "Finding",
     "Report",
     "Scan",
+    "get_all_reports",
     "get_all_scans",
     "get_dashboard_snapshot",
     "get_engine",
@@ -27,6 +30,7 @@ __all__ = [
     "get_session",
     "init_db",
     "reset_engine",
+    "save_report_record",
     "save_scan_results",
     "update_finding_status",
 ]

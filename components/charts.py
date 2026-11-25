@@ -144,3 +144,44 @@ def build_owasp_distribution_chart(owasp_counts: dict[str, int]) -> go.Figure:
     )
     fig.update_yaxes(gridcolor="rgba(0,0,0,0)")
     return _apply_dark_layout(fig, height=270)
+
+
+def build_security_proof_score_chart(original_score: float, updated_score: float) -> go.Figure:
+    """Build a Before vs After Security Score comparison bar chart."""
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=["Original Scan", "Follow-Up Scan"],
+                y=[original_score, updated_score],
+                marker=dict(
+                    color=["#8B5CF6", "#00F0FF"],
+                    line=dict(color="#F8FAFC", width=1),
+                ),
+                text=[f"{original_score:.1f}", f"{updated_score:.1f}"],
+                textposition="auto",
+            )
+        ]
+    )
+    fig.update_yaxes(range=[0, 105], gridcolor="rgba(148, 163, 184, 0.1)")
+    return _apply_dark_layout(fig, height=270)
+
+
+def build_security_proof_findings_chart(
+    fixed_count: int,
+    remaining_count: int,
+    new_count: int,
+) -> go.Figure:
+    """Build a Security Proof findings outcome breakdown chart."""
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=["Fixed (Verified)", "Remaining", "Newly Discovered"],
+                y=[fixed_count, remaining_count, new_count],
+                marker=dict(color=["#10B981", "#F5C542", "#FF3B5C"]),
+                text=[fixed_count, remaining_count, new_count],
+                textposition="auto",
+            )
+        ]
+    )
+    fig.update_yaxes(dtick=1, gridcolor="rgba(148, 163, 184, 0.1)")
+    return _apply_dark_layout(fig, height=270)

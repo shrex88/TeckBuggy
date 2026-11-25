@@ -270,7 +270,7 @@ def render_ai_intelligence_page() -> None:
 
 
 def render_scan_history_page() -> None:
-    """Render the chronological Scan History ledger from SQLite."""
+    """Render the chronological Scan History ledger from SQLite with detail inspection."""
     render_page_header(
         kicker="AUDIT LEDGER",
         title="Scan History",
@@ -285,7 +285,26 @@ def render_scan_history_page() -> None:
 
     df = pd.DataFrame(scans)
     st.dataframe(
-        df[["id", "target_url", "scan_date", "security_score", "total_findings", "status"]],
+        df[["id", "target_url", "scan_date", "security_score", "total_findings", "critical_findings", "status"]],
         use_container_width=True,
         hide_index=True,
     )
+
+    st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
+    st.subheader("Open Past Scan Details")
+    scan_options = {
+        f"Scan #{s['id']} · {s['target_url']} · {s['scan_date']}": s["id"]
+        for s in scans
+    }
+    chosen_label = st.selectbox("Select a past scan", list(scan_options.keys()), key="history_scan_select")
+    chosen_id = scan_options[chosen_label]
+
+    scan_findings = get_findings(scan_id=chosen_id)
+    if scan_findings:
+        st.dataframe(
+            pd.DataFrame(scan_findings)[["rule_id", "title", "severity", "risk_score", "owasp_category", "target_path", "finding_status"]],
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.success("No vulnerabilities were recorded in this scan.")

@@ -127,6 +127,9 @@ app = create_demo_app()
 if __name__ == "__main__":
     host = os.getenv("SENTINEL_DEMO_HOST", "127.0.0.1")
     port = int(os.getenv("SENTINEL_DEMO_PORT", "5050"))
-    if host not in {"127.0.0.1", "localhost"}:
+    allowed_bind = {"127.0.0.1", "localhost"}
+    if os.getenv("SENTINEL_DOCKER_MODE") == "1":
+        allowed_bind.add("0.0.0.0")
+    if host not in allowed_bind:
         raise ValueError("Demo lab is restricted to local loopback interfaces only.")
     app.run(host=host, port=port, debug=False)

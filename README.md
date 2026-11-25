@@ -7,6 +7,7 @@ SENTINEL AI is an AI-powered Web Application Security Intelligence Platform buil
 > **Implemented Phases:**
 > - **Phase 1:** Foundation, Premium Cybersecurity UI, Persistent SQLite/SQLAlchemy Database, and Isolated Local Flask Demonstration Lab.
 > - **Phase 2:** Defensive Local Security Scanners, OWASP Top 10:2025 Mapping, Explainable AI Risk Intelligence, and Dashboard Integration.
+> - **Phase 3:** Smart Remediation Engine, Security Proof (Before/After Verification), Branded PDF Reporting, Enhanced Scan History, and Docker Compose Setup.
 
 ---
 
@@ -44,12 +45,17 @@ sentinel-ai/
 ├── intelligence/           # OWASP 2025 & AI Risk Intelligence (Phase 2)
 │   ├── owasp_mapper.py     # OWASP Top 10:2025 mapping (A02:2025, A04:2025, contextual A07:2025)
 │   └── risk_engine.py      # Multi-factor weighted risk scoring & application profiles
-├── remediation/            # Reserved for Phase 3 remediation playbooks
-├── reporting/              # Reserved for Phase 3 report generation
+├── remediation/            # Smart Remediation Engine (Phase 3)
+│   └── fix_generator.py    # Flask, Django, Apache, Nginx & Express playbooks
+├── reporting/              # PDF Report Generation (Phase 3)
+│   └── pdf_generator.py    # Branded ReportLab PDF exporter
+├── Dockerfile              # Container image definition
+├── docker-compose.yml      # Isolated Sentinel AI + Demo Lab stack
 └── tests/
     ├── __init__.py
     ├── test_phase1.py      # Phase 1 verification tests
-    └── test_phase2.py      # Phase 2 scanner, OWASP, risk engine & DB integration tests
+    ├── test_phase2.py      # Phase 2 scanner, OWASP, risk engine & DB integration tests
+    └── test_phase3.py      # Phase 3 remediation, Security Proof, PDF & E2E tests
 ```
 
 ---
@@ -99,4 +105,11 @@ By default, the isolated local demonstration lab binds strictly to `http://127.0
 ```powershell
 cd sentinel-ai
 python -m pytest -v
+```
+
+### Docker Compose (Optional)
+
+```powershell
+cd sentinel-ai
+docker compose up --build
 ```
