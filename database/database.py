@@ -1,0 +1,210 @@
+"""Database engine, session management, initialization, and query helpers."""
+
+from __future__ import annotations
+
+import logging
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Generator, Optional
+
+from sqlalchemy import Engine, create_engine, event, func, select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, sessionmaker
+
+from config import DATA_DIR, DATABASE_URL
+from database.models import Base, Finding, Report, Scan
+
+logger = logging.getLogger(__name__)
+
+
+class DatabaseError(RuntimeError):
+    """Raised when a database initialization or query operation fails."""
+
+
+def _configure_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) -> None:
+    """Enable SQLite foreign key enforcement and WAL mode for reliability."""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON;")
+    cursor.close()
+
+
+def create_db_engine(database_url: str = DATABASE_URL) -> Engine:
+    """Create and configure a SQLAlchemy engine."""
+    connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
+    engine = create_engine(
+        database_url,
+        echo=False,
+        future=True,
+        connect_args=connect_args,
+    )
+    if database_url.startswith("sqlite"):
+        event.listen(engine, "connect", _configure_sqlite_pragmas)
+    return engine
+
+
+_engine: Optional[Engine] = None
+_SessionLocal: Optional[sessionmaker[Session]] = None
+
+
+def get_engine(database_url: str = DATABASE_URL) -> Engine:
+    """Return the singleton SQLAlchemy engine, creating it if needed."""
+    global _engine, _SessionLocal
+    if _engine is None:
+        if database_url.startswith("sqlite:///"):
+            db_file = Path(database_url.replace("sqlite:///", "", 1))
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _engine = create_db_engine(database_url)
+        _SessionLocal = sessionmaker(
+            bind=_engine,
+            autoflush=False,
+            autocommit=False,
+            expire_on_commit=False,
+        )
+    return _engine
+
+
+def init_db(database_url: str = DATABASE_URL) -> Engine:
+    """Initialize all database tables safely."""
+    try:
+        engine = get_engine(database_url)
+        Base.metadata.create_all(bind=engine)
+        return engine
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to initialize database schema.")
+        raise DatabaseError(f"Database initialization failed: {exc}") from exc
+
+
+@contextmanager
+def get_session(database_url: str = DATABASE_URL) -> Generator[Session, None, None]:
+    """Provide a transactional SQLAlchemy session with automatic rollback on error."""
+    if _SessionLocal is None:
+        init_db(database_url)
+    assert _SessionLocal is not None
+    session = _SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.exception("Database transaction failed; rolled back.")
+        raise DatabaseError(f"Database transaction error: {exc}") from exc
+    finally:
+        session.close()
+
+
+def reset_engine() -> None:
+    """Dispose the cached engine and session factory (primarily for testing)."""
+    global _engine, _SessionLocal
+    if _engine is not None:
+        _engine.dispose()
+    _engine = None
+    _SessionLocal = None
+
+
+def get_dashboard_snapshot(database_url: str = DATABASE_URL) -> dict[str, Any]:
+    """Fetch real scan and finding aggregates from SQLite for the Overview dashboard.
+
+    Returns an empty-state snapshot when no scans have been executed yet.
+    """
+    init_db(database_url)
+    with get_session(database_url) as session:
+        total_scans = session.scalar(select(func.count(Scan.id))) or 0
+        if total_scans == 0:
+            return {
+                "has_scans": False,
+                "total_scans": 0,
+                "overall_security_score": None,
+                "total_vulnerabilities": 0,
+                "critical_findings": 0,
+                "high_findings": 0,
+                "severity_counts": {},
+                "owasp_counts": {},
+                "recent_scans": [],
+                "priority_findings": [],
+                "security_alerts": [],
+                "total_reports": 0,
+            }
+
+        latest_scan = session.scalar(
+            select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc()).limit(1)
+        )
+        recent_scans = list(
+            session.scalars(
+                select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc()).limit(8)
+            ).all()
+        )
+        all_findings = list(
+            session.scalars(
+                select(Finding).order_by(Finding.risk_score.desc(), Finding.id.desc())
+            ).all()
+        )
+        total_reports = session.scalar(select(func.count(Report.id))) or 0
+
+        severity_counts: dict[str, int] = {}
+        owasp_counts: dict[str, int] = {}
+        critical_count = 0
+        high_count = 0
+
+        for f in all_findings:
+            sev = f.severity or "Info"
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+            if sev.lower() == "critical":
+                critical_count += 1
+            elif sev.lower() == "high":
+                high_count += 1
+            cat = f.owasp_category or "Uncategorized"
+            owasp_counts[cat] = owasp_counts.get(cat, 0) + 1
+
+        security_alerts = [
+            {
+                "id": f.id,
+                "title": f.title,
+                "severity": f.severity,
+                "target_path": f.target_path,
+                "risk_score": f.risk_score,
+                "status": f.finding_status,
+            }
+            for f in all_findings
+            if (f.severity or "").lower() in {"critical", "high"}
+        ][:5]
+
+        return {
+            "has_scans": True,
+            "total_scans": total_scans,
+            "overall_security_score": latest_scan.security_score if latest_scan else None,
+            "total_vulnerabilities": len(all_findings),
+            "critical_findings": critical_count,
+            "high_findings": high_count,
+            "severity_counts": severity_counts,
+            "owasp_counts": owasp_counts,
+            "recent_scans": [
+                {
+                    "id": s.id,
+                    "target_url": s.target_url,
+                    "scan_date": s.scan_date.strftime("%Y-%m-%d %H:%M UTC")
+                    if s.scan_date
+                    else "—",
+                    "security_score": s.security_score,
+                    "total_findings": s.total_findings,
+                    "status": s.status,
+                }
+                for s in recent_scans
+            ],
+            "priority_findings": [
+                {
+                    "id": f.id,
+                    "rule_id": f.rule_id,
+                    "title": f.title,
+                    "target_path": f.target_path,
+                    "severity": f.severity,
+                    "risk_score": f.risk_score,
+                    "owasp_category": f.owasp_category,
+                    "finding_status": f.finding_status,
+                }
+                for f in all_findings[:10]
+            ],
+            "security_alerts": security_alerts,
+            "total_reports": total_reports,
+        }
