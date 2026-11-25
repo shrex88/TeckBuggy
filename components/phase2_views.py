@@ -51,14 +51,13 @@ def render_new_scan_page() -> None:
         unsafe_allow_html=True,
     )
 
-    default_target = "http://127.0.0.1:8000" if _is_local_demo_reachable() else "https://example.com"
     col1, col2 = st.columns([1.4, 1], gap="medium")
     with col1:
         target_url = st.text_input(
             "Target Application URL",
-            value=default_target,
+            value="http://127.0.0.1:8000",
             key="scan_target_url",
-            help="Examples: https://example.com, https://your-app.com, or http://127.0.0.1:8000 (local only)",
+            help="Examples: http://127.0.0.1:8000, https://localhost:8443, or https://example.com",
         )
     with col2:
         app_profile = st.selectbox(
@@ -107,8 +106,7 @@ def render_new_scan_page() -> None:
             err_text = str(exc)
             if "Connection refused" in err_text and ("127.0.0.1" in target_url or "localhost" in target_url):
                 status_box.error(
-                    "Cannot reach localhost/127.0.0.1 from this server (Streamlit Cloud cannot access your laptop's local port). "
-                    "Enter a public https:// URL (e.g. https://example.com) instead."
+                    f"No service is listening on {target_url}. Ensure that port is running, or scan the built-in target http://127.0.0.1:8000 or any live https:// URL."
                 )
             else:
                 status_box.error(f"Scan failed: {exc}")
