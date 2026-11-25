@@ -422,11 +422,11 @@ def render_settings_page(snapshot: dict[str, Any]) -> None:
             <div class="sentinel-panel">
                 <div class="panel-header">
                     <span class="panel-title">Target Scope & Runtime</span>
-                    <span class="panel-badge">LOCALHOST ONLY</span>
+                    <span class="panel-badge">PUBLIC &amp; LOCAL</span>
                 </div>
                 <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.6rem;">
                     <strong>Authorised Scope:</strong><br/>
-                    <code>localhost</code>, <code>127.0.0.1</code>, <code>::1</code>, and allowlisted local Docker services (public domains blocked)
+                    Public <code>https://</code> sites, <code>localhost</code>, <code>127.0.0.1</code>, <code>::1</code>, and local network targets
                 </p>
                 <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.3rem;">
                     <strong>Security Mode:</strong> Defensive &amp; Detective Only

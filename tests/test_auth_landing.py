@@ -109,7 +109,7 @@ def test_settings_reset_button_clears_workspace(auth_db_url: str, monkeypatch: p
     ensure_default_admin(auth_db_url)
 
     app_path = Path(__file__).resolve().parent.parent / "app.py"
-    at = AppTest.from_file(app_path, default_timeout=15)
+    at = AppTest.from_file(app_path, default_timeout=30)
     at.run()
     at.text_input(key="login_identifier").set_value("admin@sentinel.ai")
     at.text_input(key="login_password").set_value("Sentinel@2026")

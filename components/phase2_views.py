@@ -36,8 +36,8 @@ def render_new_scan_page() -> None:
     render_page_header(
         kicker="DEFENSIVE SCANNER ENGINE",
         title="New Security Scan",
-        subtitle="Authorised local-only web application security assessment.",
-        badge="LOCALHOST ONLY",
+        subtitle="Non-destructive defensive security assessment for HTTPS websites and local targets.",
+        badge="PUBLIC & LOCAL",
     )
 
     st.markdown(
@@ -45,12 +45,12 @@ def render_new_scan_page() -> None:
         <div class="sentinel-panel">
             <div class="panel-header">
                 <span class="panel-title">Target Configuration & Safety Policy</span>
-                <span class="panel-badge">LOCALHOST / DOCKER ONLY</span>
+                <span class="panel-badge">PUBLIC HTTPS &amp; LOCAL TARGETS</span>
             </div>
             <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0;">
-                SENTINEL AI enforces strict SSRF and target validation. Only <code>localhost</code>,
-                <code>127.0.0.1</code>, <code>::1</code>, and allowlisted local network / Docker test
-                services are permitted. External public domains and cloud metadata endpoints are blocked.
+                SENTINEL AI supports live public <code>https://</code> websites as well as local targets
+                (<code>localhost</code>, <code>127.0.0.1</code>, local LAN IPs) while enforcing SSRF safeguards
+                against cloud metadata endpoints (<code>169.254.0.0/16</code>) and embedded URL credentials.
             </p>
         </div>
         """,
@@ -60,10 +60,10 @@ def render_new_scan_page() -> None:
     col1, col2 = st.columns([1.4, 1], gap="medium")
     with col1:
         target_url = st.text_input(
-            "Authorised Local Target URL",
+            "Target Application URL",
             value="http://127.0.0.1:8000",
             key="scan_target_url",
-            help="Examples: http://127.0.0.1:8000, http://localhost:8000, or https://localhost:8443",
+            help="Examples: https://example.com, http://127.0.0.1:8000, or https://localhost:8443",
         )
     with col2:
         app_profile = st.selectbox(
@@ -90,7 +90,7 @@ def render_new_scan_page() -> None:
                 target_url=target_url,
                 application_profile=app_profile,
                 user_id=user_id,
-                allow_public=False,
+                allow_public=True,
                 progress_callback=_on_progress,
             )
             st.session_state["last_scan_result"] = {
