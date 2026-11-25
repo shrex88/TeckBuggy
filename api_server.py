@@ -1,4 +1,4 @@
-"""REST API Bridge for SENTINEL AI Figma React Frontend.
+"""REST API Bridge for SENTINEL AI React Frontend.
 
 Exposes all defensive scanning, OWASP 2025, AI risk intelligence, Gemini
 copilot, confidence evaluation, approval governance, rollback, Security Proof,
