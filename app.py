@@ -34,9 +34,10 @@ def _load_custom_css() -> None:
 
 def main() -> None:
     """Configure page, initialize database, and route all 13 navigation views."""
+    logo_file = ASSETS_DIR / "logo.png"
     st.set_page_config(
         page_title=f"{APP_NAME} · {APP_TAGLINE}",
-        page_icon="🛡",
+        page_icon=str(logo_file) if logo_file.exists() else "🛡",
         layout="wide",
         initial_sidebar_state="expanded",
     )
