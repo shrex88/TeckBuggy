@@ -36,21 +36,6 @@ Set `GEMINI_API_KEY` in `.env` (never commit real secrets). If `GEMINI_API_KEY` 
 
 ## Starting SENTINEL AI
 
-### 1. React UI + REST API Server (Recommended — `http://localhost:8501/`)
-Start the unified Flask server (serves the compiled React frontend at `/` and REST API at `/api/*` on `http://localhost:8501/`):
-
-```powershell
-python -m api_server
-```
-
-Optional React hot-reload development mode:
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-### 2. Streamlit Dashboard
 ```powershell
 python -m streamlit run app.py
 ```
