@@ -107,6 +107,38 @@ cd sentinel-ai
 python -m pytest -v
 ```
 
+---
+
+## Phase-by-Phase Capabilities
+
+### Phase 1 — Foundation, Premium UI & Local Demonstration Lab
+- **Enterprise Cybersecurity UI:** Deep navy, charcoal, electric cyan, and violet Streamlit dashboard with custom CSS and Plotly visualizations.
+- **Persistent SQLite Storage:** SQLAlchemy ORM models (`Scan`, `Finding`, `Report`) with transactional session management and empty-state handling.
+- **Isolated Local Flask Lab:** `demo_lab/app.py` bound strictly to `127.0.0.1:5050` with configurable missing security headers, insecure `sentinel_demo_session` cookie flags, and synthetic exposed `/config.json`.
+
+### Phase 2 — Defensive Security Scanners & AI Risk Intelligence
+- **Authorised Target Validation:** `scanner/target_validator.py` restricts scans to `localhost`, `127.0.0.1`, `::1`, and explicitly allowlisted local Docker services, with DNS rebinding protection, redirect validation, timeouts, and SSRF guards.
+- **Scanning Modules:** HTTP Security Header Scanner, Cookie Security Scanner (cookie values never stored), Strict TLS/Certificate Scanner, and Predefined Exposed File Scanner.
+- **OWASP Top 10:2025 & Risk Engine:** Deterministic mapping (`A02:2025`, `A04:2025`, contextual `A07:2025`) and weighted 0–100 risk scoring across `Fintech / Payment Application`, `Customer Portal`, and `General Web Application` profiles.
+
+### Phase 3 — Smart Remediation, Security Proof & PDF Reporting
+- **Smart Remediation Engine:** `remediation/fix_generator.py` provides technical explanations, security impact, corrected configurations, verification steps, and reference code for Flask, Django, Apache, Nginx, and Express without modifying targets automatically.
+- **Security Proof Engine:** `intelligence/security_proof.py` compares baseline and follow-up scans by `(rule_id, target_path)`, calculates risk reduction and percentage improvement, and marks findings `resolved` only after a subsequent completed scan verifies the fix.
+- **Branded PDF Reports & Scan History:** `reporting/pdf_generator.py` exports 10-section PDF assessment reports via ReportLab, and `Scan History` provides full historical scan and finding inspection.
+
+---
+
+## Live Hackathon Demonstration Flow
+
+`AUTHORISE → SCAN → DETECT → PRIORITISE → FIX → RESCAN → VERIFY → REPORT`
+
+1. Start the local Flask demonstration lab (`python -m demo_lab.app`) and Streamlit dashboard (`python -m streamlit run app.py`).
+2. Run an initial scan against `http://127.0.0.1:5050` in **New Security Scan**.
+3. Inspect detected misconfigurations, OWASP 2025 mappings, and AI risk scores in **Vulnerabilities** and **AI Risk Intelligence**.
+4. Review framework-specific patches in **Remediation Centre** and apply fixes to the local lab (e.g., via `POST /lab/settings`).
+5. Run a second scan and open **Security Proof** to verify fixed vulnerabilities, score improvement, and risk reduction.
+6. Export and download the branded PDF report in **Reports**.
+
 ### Docker Compose (Optional)
 
 ```powershell
