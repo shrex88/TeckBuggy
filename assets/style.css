@@ -37,7 +37,10 @@ html, body, [class*="css"] {
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 [data-testid="stAppDeployButton"],
-.stDeployButton {
+.stDeployButton,
+[data-testid="stToolbar"],
+[data-testid="stToolbarActions"],
+[data-testid="stStatusWidget"] {
     display: none !important;
 }
 header[data-testid="stHeader"] {
