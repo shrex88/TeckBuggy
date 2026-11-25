@@ -16,11 +16,46 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _LAST_GEMINI_STATUS: str = "Not invoked yet"
+DEFAULT_GEMINI_MODEL: str = "gemini-2.5-flash"
+FALLBACK_GEMINI_MODELS: tuple[str, ...] = (
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite",
+)
+
+
+def _get_secret_or_env(key: str) -> str:
+    """Read a config value from environment variables first, then Streamlit secrets."""
+    val = (os.getenv(key) or "").strip()
+    if val:
+        return val
+    try:
+        import streamlit as st
+
+        secret_val = st.secrets.get(key)
+        if secret_val is not None:
+            return str(secret_val).strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _candidate_models(model: str | None = None) -> list[str]:
+    """Return deduplicated ordered Gemini model candidates."""
+    primary = (model or _get_secret_or_env("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL).strip()
+    if primary == "gemini-4-hydrogen":
+        primary = DEFAULT_GEMINI_MODEL
+    candidates: list[str] = []
+    for m in (primary, *FALLBACK_GEMINI_MODELS):
+        if m and m not in candidates:
+            candidates.append(m)
+    return candidates
 
 
 def is_gemini_configured() -> bool:
-    """Return True if a non-empty GEMINI_API_KEY is available in the environment."""
-    return bool((os.getenv("GEMINI_API_KEY") or "").strip())
+    """Return True if a non-empty GEMINI_API_KEY is available in env or secrets."""
+    return bool(_get_secret_or_env("GEMINI_API_KEY"))
 
 
 def get_last_gemini_status() -> str:
@@ -63,16 +98,12 @@ def request_gemini_json(
     """
     global _LAST_GEMINI_STATUS
 
-    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    api_key = _get_secret_or_env("GEMINI_API_KEY")
     if not api_key:
         _LAST_GEMINI_STATUS = "GEMINI_API_KEY not configured; using deterministic fallback."
         return None
 
-    primary = (model or os.getenv("GEMINI_MODEL") or "gemini-4-hydrogen").strip()
-    candidates: list[str] = []
-    for m in (primary, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"):
-        if m and m not in candidates:
-            candidates.append(m)
+    candidates = _candidate_models(model)
 
     try:
         from google import genai
@@ -118,16 +149,12 @@ def request_gemini_text(
     """Send a plain-text prompt to Gemini via google-genai SDK with resilient fallback."""
     global _LAST_GEMINI_STATUS
 
-    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    api_key = _get_secret_or_env("GEMINI_API_KEY")
     if not api_key:
         _LAST_GEMINI_STATUS = "GEMINI_API_KEY not configured; using deterministic fallback."
         return None
 
-    primary = (model or os.getenv("GEMINI_MODEL") or "gemini-4-hydrogen").strip()
-    candidates: list[str] = []
-    for m in (primary, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"):
-        if m and m not in candidates:
-            candidates.append(m)
+    candidates = _candidate_models(model)
 
     try:
         from google import genai
