@@ -146,12 +146,56 @@ def render_new_scan_page() -> None:
                 unsafe_allow_html=True,
             )
 
-            rows_html: list[str] = []
+            sev_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+            s_col1, s_col2 = st.columns(2, gap="medium")
+            with s_col1:
+                scan_sev_filter = st.selectbox(
+                    "Filter by Severity",
+                    ["All", "Critical", "High", "Medium", "Low"],
+                    key="scan_results_sev_filter",
+                )
+            with s_col2:
+                scan_sort_order = st.selectbox(
+                    "Sort Order",
+                    [
+                        "Severity (Critical → Low)",
+                        "Severity (Low → Critical)",
+                        "Risk Score (High → Low)",
+                    ],
+                    key="scan_results_sort_order",
+                )
+
             severity_counts: dict[str, int] = {}
             for item in last_findings:
+                sev_label = str(item.get("severity", "Info"))
+                severity_counts[sev_label] = severity_counts.get(sev_label, 0) + 1
+
+            displayed_findings = (
+                [f for f in last_findings if str(f.get("severity", "")).lower() == scan_sev_filter.lower()]
+                if scan_sev_filter != "All"
+                else list(last_findings)
+            )
+            if scan_sort_order == "Severity (Critical → Low)":
+                displayed_findings.sort(
+                    key=lambda x: (
+                        sev_rank.get(str(x.get("severity", "info")).lower(), 4),
+                        -float(x.get("risk_score", 0.0)),
+                    )
+                )
+            elif scan_sort_order == "Severity (Low → Critical)":
+                displayed_findings.sort(
+                    key=lambda x: (
+                        -sev_rank.get(str(x.get("severity", "info")).lower(), 4),
+                        float(x.get("risk_score", 0.0)),
+                    )
+                )
+            else:
+                displayed_findings.sort(key=lambda x: -float(x.get("risk_score", 0.0)))
+
+            rows_html: list[str] = []
+            for item in displayed_findings:
                 sev = str(item.get("severity", "Info"))
                 sev_cls = sev.lower() if sev.lower() in {"critical", "high", "medium", "low", "info"} else "info"
-                severity_counts[sev] = severity_counts.get(sev, 0) + 1
                 risk_val = float(item.get("risk_score", 0.0))
                 bar_color = (
                     "#ff3b5c" if risk_val >= 85
