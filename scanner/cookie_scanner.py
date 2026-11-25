@@ -176,7 +176,7 @@ def scan_cookies(
     """Scan an authorised local target for insecure cookie configurations."""
     vt = validated or validate_target_url(target_url, allow_public=allow_public)
     findings: list[StandardFinding] = []
-    seen_keys: set[tuple[str, str, str]] = set()
+    seen_keys: set[tuple[str, str]] = set()
 
     base = vt.normalized_url.rstrip("/")
     for path in paths:
@@ -192,7 +192,6 @@ def scan_cookies(
             dedup_key = (
                 finding.rule_id,
                 str(finding.metadata.get("cookie_name", "")),
-                path,
             )
             if dedup_key not in seen_keys:
                 seen_keys.add(dedup_key)
