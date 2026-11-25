@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import socket
+import threading
+
 import streamlit as st
 
 from components import (
@@ -26,6 +29,39 @@ from config import APP_NAME, APP_TAGLINE, ASSETS_DIR
 from database import DatabaseError, ensure_default_admin, get_dashboard_snapshot, init_db
 
 
+@st.cache_resource
+def _ensure_local_demo_server() -> bool:
+    """Start a lightweight built-in Flask demo target on 127.0.0.1:8000 if not already running."""
+    try:
+        with socket.create_connection(("127.0.0.1", 8000), timeout=0.25):
+            return True
+    except OSError:
+        pass
+
+    try:
+        from flask import Flask, make_response
+        from werkzeug.serving import make_server
+
+        demo = Flask("sentinel_embedded_demo")
+
+        @demo.route("/", methods=["GET"])
+        def _index():
+            resp = make_response("<html><body><h1>SENTINEL Local Demo Target</h1></body></html>", 200)
+            resp.set_cookie("sentinel_demo_session", "demo-token", httponly=False, secure=False)
+            return resp
+
+        @demo.route("/.env", methods=["GET"])
+        def _env():
+            return make_response("APP_ENV=local_demo\n", 200, {"Content-Type": "text/plain"})
+
+        server = make_server("127.0.0.1", 8000, demo, threaded=True)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        return True
+    except Exception:
+        return False
+
+
 def _load_custom_css() -> None:
     """Inject custom Sentinel AI stylesheet into the Streamlit page."""
     css_path = ASSETS_DIR / "style.css"
@@ -44,6 +80,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
+    _ensure_local_demo_server()
     _load_custom_css()
 
     if "active_page" not in st.session_state:

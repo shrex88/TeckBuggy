@@ -75,6 +75,8 @@ def validate_target_url(
         raise TargetValidationError("Target URL must be a non-empty string.")
 
     cleaned = raw_url.strip()
+    if "://" not in cleaned and cleaned.lower().startswith(("localhost", "127.0.0.1", "[::1]")):
+        cleaned = f"http://{cleaned}"
     parsed = urlparse(cleaned)
 
     if parsed.scheme.lower() not in {"http", "https"}:
@@ -188,13 +190,26 @@ def safe_fetch(
             allow_public=allow_public,
             resolver=resolver,
         )
-        resp = http_session.request(
-            method=method.upper(),
-            url=validated.normalized_url,
-            timeout=timeout,
-            allow_redirects=False,
-            stream=True,
-        )
+        try:
+            resp = http_session.request(
+                method=method.upper(),
+                url=validated.normalized_url,
+                timeout=timeout,
+                allow_redirects=False,
+                stream=True,
+            )
+        except requests.exceptions.SSLError:
+            if validated.hostname in ALLOWED_LOCAL_HOSTS and validated.scheme == "https":
+                resp = http_session.request(
+                    method=method.upper(),
+                    url=validated.normalized_url,
+                    timeout=timeout,
+                    allow_redirects=False,
+                    stream=True,
+                    verify=False,
+                )
+            else:
+                raise
 
         # Read up to max_bytes safely
         chunks: list[bytes] = []
