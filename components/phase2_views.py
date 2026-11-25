@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 from typing import Any
 
 import pandas as pd
@@ -15,13 +16,22 @@ from intelligence import classify_risk_level
 from scanner import TargetValidationError, run_security_scan
 
 
+def _is_local_demo_reachable() -> bool:
+    """Return True if the local demo lab is listening on 127.0.0.1:8000."""
+    try:
+        with socket.create_connection(("127.0.0.1", 8000), timeout=0.25):
+            return True
+    except OSError:
+        return False
+
+
 def render_new_scan_page() -> None:
     """Render the interactive New Security Scan view."""
     render_page_header(
         kicker="DEFENSIVE SCANNER ENGINE",
         title="New Security Scan",
-        subtitle="Authorised local-only web application security assessment.",
-        badge="PHASE 2 ACTIVE",
+        subtitle="Non-destructive defensive security assessment for public web apps and local targets.",
+        badge="SCANNER READY",
     )
 
     st.markdown(
@@ -29,25 +39,26 @@ def render_new_scan_page() -> None:
         <div class="sentinel-panel">
             <div class="panel-header">
                 <span class="panel-title">Target Configuration & Safety Policy</span>
-                <span class="panel-badge">LOCALHOST / DOCKER ONLY</span>
+                <span class="panel-badge">PUBLIC &amp; LOCAL TARGETS</span>
             </div>
             <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0;">
-                SENTINEL AI enforces strict SSRF and target validation. Only <code>localhost</code>,
-                <code>127.0.0.1</code>, <code>::1</code>, and explicitly allowlisted local Docker test
-                services are permitted. External domains and public IP addresses are blocked.
+                SENTINEL AI supports live public <code>https://</code> domains as well as local targets
+                (<code>localhost</code>, <code>127.0.0.1</code>) while enforcing SSRF safeguards against
+                cloud metadata endpoints (<code>169.254.0.0/16</code>) and embedded URL credentials.
             </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+    default_target = "http://127.0.0.1:8000" if _is_local_demo_reachable() else "https://example.com"
     col1, col2 = st.columns([1.4, 1], gap="medium")
     with col1:
         target_url = st.text_input(
-            "Authorised Local Target URL",
-            value="http://127.0.0.1:8000",
+            "Target Application URL",
+            value=default_target,
             key="scan_target_url",
-            help="Examples: http://127.0.0.1:8000 or http://localhost:3000",
+            help="Examples: https://example.com, https://your-app.com, or http://127.0.0.1:8000 (local only)",
         )
     with col2:
         app_profile = st.selectbox(
@@ -93,7 +104,14 @@ def render_new_scan_page() -> None:
             status_box.error(f"Target blocked by security policy: {exc}")
         except Exception as exc:
             progress_bar.empty()
-            status_box.error(f"Scan failed: {exc}")
+            err_text = str(exc)
+            if "Connection refused" in err_text and ("127.0.0.1" in target_url or "localhost" in target_url):
+                status_box.error(
+                    "Cannot reach localhost/127.0.0.1 from this server (Streamlit Cloud cannot access your laptop's local port). "
+                    "Enter a public https:// URL (e.g. https://example.com) instead."
+                )
+            else:
+                status_box.error(f"Scan failed: {exc}")
 
     last = st.session_state.get("last_scan_result")
     if last:
