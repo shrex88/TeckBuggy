@@ -108,3 +108,54 @@ def request_gemini_json(
 
     _LAST_GEMINI_STATUS = f"Gemini temporarily unavailable ({last_err}); using deterministic fallback."
     return None
+
+
+def request_gemini_text(
+    prompt: str,
+    *,
+    model: str | None = None,
+) -> str | None:
+    """Send a plain-text prompt to Gemini via google-genai SDK with resilient fallback."""
+    global _LAST_GEMINI_STATUS
+
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not api_key:
+        _LAST_GEMINI_STATUS = "GEMINI_API_KEY not configured; using deterministic fallback."
+        return None
+
+    primary = (model or os.getenv("GEMINI_MODEL") or "gemini-4-hydrogen").strip()
+    candidates: list[str] = []
+    for m in (primary, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"):
+        if m and m not in candidates:
+            candidates.append(m)
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=30000),
+        )
+    except Exception as exc:
+        _LAST_GEMINI_STATUS = f"Gemini client init error: {type(exc).__name__}"
+        return None
+
+    last_err = ""
+    for candidate in candidates:
+        try:
+            response = client.models.generate_content(
+                model=candidate,
+                contents=prompt,
+                config=types.GenerateContentConfig(temperature=0.3),
+            )
+            text = (getattr(response, "text", None) or "").strip()
+            if text:
+                _LAST_GEMINI_STATUS = f"Connected to {candidate}"
+                return text
+        except Exception as exc:
+            last_err = f"{candidate}: {type(exc).__name__}"
+            continue
+
+    _LAST_GEMINI_STATUS = f"Gemini temporarily unavailable ({last_err}); using deterministic fallback."
+    return None

@@ -6,16 +6,18 @@
 
 SENTINEL AI is an evidence-driven web application security assessment, benchmarking, AI-assisted remediation, and verification platform built with Python, Streamlit, Flask, Google Gemini (`google-genai`), SQLite/SQLAlchemy, Plotly, and ReportLab.
 
-> **Core Workflow:** `AUTHORISE → BENCHMARK → SCAN → DETECT → ANALYSE → PRIORITISE → GEMINI AI → APPROVE → APPLY → VERIFY → PROVE → REPORT`
+> **Core Workflow:** `DETECT → LEARN → SIMULATE → EVALUATE → APPROVE → REMEDIATE → RESCAN → VERIFY → REPORT`
 
 ---
 
 ## Architecture
 
-- **`app.py` / `config.py`** — Streamlit entrypoint, 13-section router, target registry, allowlisted action catalogue, and OWASP Top 10:2025 metadata.
+- **`app.py` / `config.py`** — Streamlit entrypoint, 16-section router, target registry, allowlisted action catalogue, and OWASP Top 10:2025 metadata.
 - **`scanner/`** — Strict local-only `target_validator.py` (SSRF, DNS rebinding, redirect protection), `header_scanner.py`, `cookie_scanner.py`, `tls_scanner.py`, `exposed_file_scanner.py` (with SPA soft-404 filtering), and `orchestrator.py`.
-- **`intelligence/`** — `owasp_mapper.py` (OWASP Top 10:2025), `risk_engine.py` (5-factor Fintech-aware scoring + contextual impact), `benchmark.py` (App A vs App B), `security_proof.py`, `regression_guard.py`, `gemini_client.py`, and `ai_remediation.py`.
-- **`remediation/`** — `fix_generator.py`, `fix_validator.py`, `approval_manager.py`, `fix_applier.py`, `rollback_manager.py`, and `verification_engine.py`.
+- **`digital_twin/`** — Virtual Security Digital Twin (`configuration_snapshot.py`, `csp_simulator.py`, `cookie_simulator.py`, `compatibility_checker.py`, `simulation_evaluator.py`, `simulation_history.py`, `twin_engine.py`).
+- **`learning/`** — Security Learning Mode (`lesson_generator.py`, `quiz_engine.py`, `security_tutor.py`, `challenge_engine.py`, `progress_tracker.py`, `learning_engine.py`).
+- **`intelligence/`** — `owasp_mapper.py`, `risk_engine.py`, `benchmark.py`, `security_proof.py`, `regression_guard.py`, `remediation_confidence.py`, `gemini_client.py`, and `ai_remediation.py`.
+- **`remediation/`** — `fix_generator.py`, `fix_validator.py`, `regression_analyzer.py`, `approval_manager.py`, `fix_applier.py`, `rollback_manager.py`, and `verification_engine.py`.
 - **`reporting/`** — `pdf_generator.py` generating 16-section branded PDF reports from SQLite.
 - **`demo_lab/`** — Isolated local Flask targets:
   - `high_security_app.py` (Application A — read-only hardened reference on `127.0.0.1:5051`).
@@ -68,6 +70,9 @@ docker compose up --build
 - **Verification & Security Proof:** Click **Verify Fix via Fresh Scan** or open **Security Proof** to verify resolved findings, risk reduction, and percentage improvement.
 - **Smart Rollback:** Open **Remediation History** → select a `backup_uid` → **Rollback Configuration** to restore and verify the original setting.
 - **Security Regression Guard:** Open **Security Regression Guard** to detect returning fixed issues or score deterioration.
+- **Security Digital Twin:** Open **Security Digital Twin** to snapshot an authorised local app, simulate CSP/Cookie changes safely, inspect compatibility warnings, and compare simulation history without touching the live app.
+- **AI Remediation Confidence Engine:** Open **Remediation Confidence** (or click **Evaluate Confidence** in **Developer Approval Centre**) to view deterministic validation, application safety, regression warnings, and 7-factor confidence scoring.
+- **Security Learning Mode:** Open **Security Learning Mode** for Beginner/Intermediate/Advanced lessons, the Gemini AI Security Tutor, interactive quizzes, hands-on local lab challenges, and verified badges.
 - **PDF Reports:** Open **Reports** → **Generate PDF Report** → **Download PDF Report**.
 
 ---

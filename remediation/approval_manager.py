@@ -14,6 +14,8 @@ VALID_APPROVAL_STATES = frozenset({
     "Pending Review",
     "Approved",
     "Rejected",
+    "Modification Requested",
+    "Saved for Later",
     "Applied",
     "Verification Pending",
     "Verified",
@@ -79,9 +81,10 @@ def set_proposal_decision(
     notes: str = "",
     database_url: str = DATABASE_URL,
 ) -> dict[str, Any]:
-    """Record an explicit developer approval or rejection decision."""
-    if decision not in {"Approved", "Rejected"}:
-        raise ApprovalError("Decision must be 'Approved' or 'Rejected'.")
+    """Record an explicit developer approval, rejection, modification request, or save-for-later decision."""
+    allowed_decisions = {"Approved", "Rejected", "Modification Requested", "Saved for Later"}
+    if decision not in allowed_decisions:
+        raise ApprovalError(f"Decision must be one of {sorted(allowed_decisions)}.")
 
     init_db(database_url)
     with get_session(database_url) as session:

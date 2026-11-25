@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import select
+
 from config import DATABASE_URL
 from database.database import get_session, init_db, log_audit_event
-from database.models import Finding, RemediationProposal
+from database.models import Finding, RemediationEvaluation, RemediationProposal
 from intelligence.security_proof import compare_scans
 from scanner.orchestrator import run_security_scan
 
@@ -54,6 +56,25 @@ def verify_remediation_proposal(
         proposal_obj = session.get(RemediationProposal, proposal_id)
         if proposal_obj is not None:
             proposal_obj.approval_status = new_status
+        latest_eval = session.scalar(
+            select(RemediationEvaluation)
+            .where(RemediationEvaluation.proposal_id == proposal_id)
+            .order_by(RemediationEvaluation.id.desc())
+            .limit(1)
+        )
+        eval_id = int(latest_eval.id) if latest_eval is not None else None
+
+    if eval_id is not None:
+        from intelligence.remediation_confidence import record_confidence_outcome
+
+        record_confidence_outcome(
+            evaluation_id=eval_id,
+            followup_scan_id=followup.scan_id,
+            actual_resolved=is_verified,
+            regression_occurred=len(proof.newly_discovered_vulnerabilities) > 0,
+            evidence_summary=f"Follow-up scan #{followup.scan_id}: {new_status}",
+            database_url=database_url,
+        )
 
     log_audit_event(
         event_type="REMEDIATION_VERIFIED" if is_verified else "REMEDIATION_VERIFICATION_FAILED",

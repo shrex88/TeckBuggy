@@ -19,6 +19,7 @@ from config import (
 from database import get_all_scans, get_audit_logs, get_findings, get_regression_alerts
 from intelligence import (
     RegressionGuardError,
+    evaluate_remediation_proposal,
     evaluate_security_regression,
     generate_ai_remediation_proposal,
     is_gemini_configured,
@@ -222,7 +223,7 @@ def render_approval_centre_page() -> None:
             unsafe_allow_html=True,
         )
 
-        b1, b2, b3, b4, b5 = st.columns(5, gap="small")
+        b1, b2, b3, b4, b5, b6 = st.columns(6, gap="small")
         with b1:
             if st.button("View Explanation", key=f"app_exp_{p['id']}", use_container_width=True):
                 st.session_state[f"exp_{p['id']}"] = not st.session_state.get(f"exp_{p['id']}", False)
@@ -230,20 +231,24 @@ def render_approval_centre_page() -> None:
             if st.button("View Configuration", key=f"app_cfg_{p['id']}", use_container_width=True):
                 st.session_state[f"cfg_{p['id']}"] = not st.session_state.get(f"cfg_{p['id']}", False)
         with b3:
+            if st.button("Evaluate Confidence", key=f"app_conf_{p['id']}", use_container_width=True):
+                ev = evaluate_remediation_proposal(p["id"])
+                st.info(ev.explanation)
+        with b4:
             if st.button("Approve Fix", key=f"approve_{p['id']}", use_container_width=True):
                 try:
                     set_proposal_decision(p["id"], decision="Approved")
                     st.rerun()
                 except ApprovalError as exc:
                     st.error(str(exc))
-        with b4:
+        with b5:
             if st.button("Reject Fix", key=f"reject_{p['id']}", use_container_width=True):
                 try:
                     set_proposal_decision(p["id"], decision="Rejected")
                     st.rerun()
                 except ApprovalError as exc:
                     st.error(str(exc))
-        with b5:
+        with b6:
             if st.button("Apply Approved Fix", key=f"apply_{p['id']}", type="primary", use_container_width=True):
                 try:
                     res = apply_approved_remediation(p["id"], target_url=target_url)
@@ -253,6 +258,16 @@ def render_approval_centre_page() -> None:
                     st.rerun()
                 except (RemediationValidationError, RemediationApplyError) as exc:
                     st.error(str(exc))
+
+        g1, g2 = st.columns(2, gap="small")
+        with g1:
+            if st.button("Request Modification", key=f"mod_req_{p['id']}", use_container_width=True):
+                set_proposal_decision(p["id"], decision="Modification Requested")
+                st.rerun()
+        with g2:
+            if st.button("Save for Later", key=f"save_lat_{p['id']}", use_container_width=True):
+                set_proposal_decision(p["id"], decision="Saved for Later")
+                st.rerun()
 
         if st.session_state.get(f"exp_{p['id']}", False):
             st.info(f"**Explanation:** {p['technical_explanation']}\n\n**Impact:** {p['security_impact']}")
