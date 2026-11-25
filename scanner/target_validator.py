@@ -139,7 +139,7 @@ def validate_target_url(
             pass
 
         if is_standard_local:
-            if not _is_loopback_ip(ip_str):
+            if not (_is_loopback_ip(ip_str) or _is_private_docker_ip(ip_str)):
                 raise TargetValidationError(
                     f"DNS rebinding blocked: '{hostname}' resolved to non-loopback IP '{ip_str}'."
                 )
