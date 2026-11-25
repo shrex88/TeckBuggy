@@ -4,7 +4,7 @@
 
 SENTINEL AI is an AI-powered Web Application Security Intelligence Platform built with Python, Streamlit, Plotly, SQLite/SQLAlchemy, and Flask.
 
-> **Current Release:** Phase 1 — Foundation, Premium UI, Persistent Database, and Isolated Local Demonstration Lab.
+> **Current Release:** Phase 2 — Defensive Local Security Scanners, OWASP Top 10:2025 Mapping, Explainable AI Risk Intelligence, and Dashboard Integration.
 
 ---
 
@@ -13,30 +13,41 @@ SENTINEL AI is an AI-powered Web Application Security Intelligence Platform buil
 ```text
 sentinel-ai/
 ├── app.py                  # Main Streamlit application entrypoint & navigation router
-├── config.py               # Central configuration, constants, navigation & OWASP metadata
+├── config.py               # Central configuration, constants, profiles & OWASP 2025 metadata
 ├── requirements.txt        # Python dependencies
 ├── README.md               # Documentation & exact run commands
 ├── database/
 │   ├── __init__.py
-│   ├── database.py         # SQLAlchemy engine, session lifecycle, snapshot queries
+│   ├── database.py         # SQLAlchemy engine, session lifecycle, snapshot & scan queries
 │   └── models.py           # ORM models: Scan, Finding, Report
 ├── components/
 │   ├── __init__.py
 │   ├── sidebar.py          # Enterprise sidebar navigation
 │   ├── dashboard.py        # Overview dashboard, empty state, Coming Soon & Settings views
+│   ├── phase2_views.py     # New Security Scan, Vulnerabilities, AI Intelligence & Scan History
 │   └── charts.py           # Dark-themed Plotly gauges & distribution charts
 ├── demo_lab/
 │   ├── __init__.py
 │   └── app.py              # Isolated Flask local demonstration lab (synthetic data only)
 ├── assets/
 │   └── style.css           # Deep navy / electric cyan / violet cybersecurity SaaS theme
-├── scanner/                # Reserved for Phase 2 scanning engine
-├── intelligence/           # Reserved for Phase 3 AI risk intelligence
+├── scanner/                # Authorised local-only security scanners (Phase 2)
+│   ├── target_validator.py # SSRF prevention, DNS rebinding & redirect validation
+│   ├── header_scanner.py   # HTTP security header inspection
+│   ├── cookie_scanner.py   # Cookie flag analysis (values never stored)
+│   ├── tls_scanner.py      # Strict TLS & certificate inspection
+│   ├── exposed_file_scanner.py # Predefined sensitive path metadata checks
+│   ├── models.py           # StandardFinding dataclass
+│   └── orchestrator.py     # End-to-end scan & persistence coordinator
+├── intelligence/           # OWASP 2025 & AI Risk Intelligence (Phase 2)
+│   ├── owasp_mapper.py     # OWASP Top 10:2025 mapping (A02:2025, A04:2025, contextual A07:2025)
+│   └── risk_engine.py      # Multi-factor weighted risk scoring & application profiles
 ├── remediation/            # Reserved for Phase 3 remediation playbooks
 ├── reporting/              # Reserved for Phase 3 report generation
 └── tests/
     ├── __init__.py
-    └── test_phase1.py      # Phase 1 verification tests
+    ├── test_phase1.py      # Phase 1 verification tests
+    └── test_phase2.py      # Phase 2 scanner, OWASP, risk engine & DB integration tests
 ```
 
 ---
