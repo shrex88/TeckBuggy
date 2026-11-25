@@ -190,24 +190,35 @@ def safe_fetch(
             allow_public=allow_public,
             resolver=resolver,
         )
-        try:
-            resp = http_session.request(
+        def _do_request(target_url_str: str, verify_tls: bool = True) -> requests.Response:
+            return http_session.request(
                 method=method.upper(),
-                url=validated.normalized_url,
+                url=target_url_str,
                 timeout=timeout,
                 allow_redirects=False,
                 stream=True,
+                verify=verify_tls,
             )
+
+        try:
+            resp = _do_request(validated.normalized_url, verify_tls=True)
         except requests.exceptions.SSLError:
             if validated.hostname in ALLOWED_LOCAL_HOSTS and validated.scheme == "https":
-                resp = http_session.request(
-                    method=method.upper(),
-                    url=validated.normalized_url,
-                    timeout=timeout,
-                    allow_redirects=False,
-                    stream=True,
-                    verify=False,
-                )
+                resp = _do_request(validated.normalized_url, verify_tls=False)
+            else:
+                raise
+        except requests.exceptions.ConnectionError:
+            if validated.hostname in ALLOWED_LOCAL_HOSTS:
+                alt_host = "[::1]" if validated.hostname == "127.0.0.1" else "127.0.0.1"
+                host_token = f"[{validated.hostname}]" if ":" in validated.hostname else validated.hostname
+                alt_url = validated.normalized_url.replace(f"://{host_token}", f"://{alt_host}", 1)
+                try:
+                    resp = _do_request(alt_url, verify_tls=True)
+                except requests.exceptions.SSLError:
+                    if validated.scheme == "https":
+                        resp = _do_request(alt_url, verify_tls=False)
+                    else:
+                        raise
             else:
                 raise
 
