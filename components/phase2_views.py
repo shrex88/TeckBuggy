@@ -118,6 +118,18 @@ def render_new_scan_page() -> None:
                 status_box.error(f"Scan failed: {exc}")
 
     last = st.session_state.get("last_scan_result")
+    if not last:
+        current_user = st.session_state.get("auth_user")
+        user_id = current_user.get("id") if isinstance(current_user, dict) else None
+        user_scans = get_all_scans(user_id=user_id)
+        if user_scans:
+            latest = user_scans[0]
+            last = {
+                "scan_id": latest["id"],
+                "target_url": latest["target_url"],
+                "security_score": latest["security_score"],
+                "total_findings": latest["total_findings"],
+            }
     if last:
         st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
         last_findings = get_findings(scan_id=last["scan_id"])
