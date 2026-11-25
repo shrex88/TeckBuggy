@@ -42,41 +42,43 @@ def run_security_scan(
     target_url: str,
     *,
     application_profile: str = "General Web Application",
+    user_id: int | None = None,
+    allow_public: bool | None = None,
     database_url: str = DATABASE_URL,
     session: requests.Session | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> ScanExecutionResult:
-    """Validate an authorised local target, run all defensive scanners, score findings, and persist."""
+    """Validate target, run all defensive scanners, score findings, and persist."""
 
     def _notify(pct: float, msg: str) -> None:
         if progress_callback is not None:
             progress_callback(pct, msg)
 
     _notify(0.10, "Validating target URL and SSRF policy...")
-    validated: ValidatedTarget = validate_target_url(target_url)
+    validated: ValidatedTarget = validate_target_url(target_url, allow_public=allow_public)
 
     http_session = session or requests.Session()
     all_findings: list[StandardFinding] = []
 
     _notify(0.25, "Inspecting HTTP security headers...")
     header_findings, _ = scan_headers(
-        validated.normalized_url, session=http_session, validated=validated
+        validated.normalized_url, session=http_session, validated=validated, allow_public=allow_public
     )
     all_findings.extend(header_findings)
 
     _notify(0.45, "Analysing cookie security flags...")
     cookie_findings = scan_cookies(
-        validated.normalized_url, session=http_session, validated=validated
+        validated.normalized_url, session=http_session, validated=validated, allow_public=allow_public
     )
     all_findings.extend(cookie_findings)
 
     _notify(0.65, "Inspecting TLS & transport security...")
-    tls_findings = scan_tls(validated.normalized_url, validated=validated)
+    tls_findings = scan_tls(validated.normalized_url, validated=validated, allow_public=allow_public)
     all_findings.extend(tls_findings)
 
     _notify(0.80, "Checking predefined exposed configuration paths...")
     file_findings = scan_exposed_files(
-        validated.normalized_url, session=http_session, validated=validated
+        validated.normalized_url, session=http_session, validated=validated, allow_public=allow_public
     )
     all_findings.extend(file_findings)
 
@@ -122,6 +124,7 @@ def run_security_scan(
         target_url=validated.normalized_url,
         security_score=security_score,
         findings_data=db_finding_payloads,
+        user_id=user_id,
         status="completed",
         database_url=database_url,
     )

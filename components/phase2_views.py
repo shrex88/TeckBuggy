@@ -68,9 +68,13 @@ def render_new_scan_page() -> None:
             status_box.info(msg)
 
         try:
+            current_user = st.session_state.get("auth_user")
+            user_id = current_user.get("id") if isinstance(current_user, dict) else None
             result = run_security_scan(
                 target_url=target_url,
                 application_profile=app_profile,
+                user_id=user_id,
+                allow_public=True,
                 progress_callback=_on_progress,
             )
             st.session_state["last_scan_result"] = {
@@ -114,7 +118,9 @@ def render_vulnerabilities_page() -> None:
         badge="SQLITE BACKED",
     )
 
-    scans = get_all_scans()
+    current_user = st.session_state.get("auth_user")
+    user_id = current_user.get("id") if isinstance(current_user, dict) else None
+    scans = get_all_scans(user_id=user_id)
     if not scans:
         st.info("No scans recorded yet. Run a scan in 'New Security Scan' to populate vulnerabilities.")
         if st.button("START YOUR FIRST SCAN", key="vuln_empty_cta", type="primary"):
@@ -140,8 +146,11 @@ def render_vulnerabilities_page() -> None:
             ["All", *OWASP_CATEGORIES],
         )
 
+    current_user = st.session_state.get("auth_user")
+    user_id = current_user.get("id") if isinstance(current_user, dict) else None
     findings = get_findings(
         scan_id=selected_scan_id,
+        user_id=user_id if selected_scan_id is None else None,
         severity=selected_sev,
         owasp_category=selected_owasp,
     )
@@ -220,7 +229,9 @@ def render_ai_intelligence_page() -> None:
         badge="RULE-BASED ENGINE",
     )
 
-    findings = get_findings()
+    current_user = st.session_state.get("auth_user")
+    user_id = current_user.get("id") if isinstance(current_user, dict) else None
+    findings = get_findings(user_id=user_id)
     if not findings:
         st.info("No findings scored yet. Run a scan in 'New Security Scan' to view AI Risk Intelligence.")
         return
@@ -285,7 +296,9 @@ def render_scan_history_page() -> None:
         badge="PERSISTENT LOG",
     )
 
-    scans = get_all_scans()
+    current_user = st.session_state.get("auth_user")
+    user_id = current_user.get("id") if isinstance(current_user, dict) else None
+    scans = get_all_scans(user_id=user_id)
     if not scans:
         st.info("No scan history recorded yet.")
         return

@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from config import DATABASE_URL
 from database.database import log_audit_event, save_benchmark_run
-from scanner.orchestrator import ScanExecutionResult, run_security_scan
+
+if TYPE_CHECKING:
+    from scanner.orchestrator import ScanExecutionResult
 
 SECURITY_CONTROLS: list[tuple[str, str, str]] = [
     ("HDR-001", "Content-Security-Policy", "Security Headers"),
@@ -85,6 +87,8 @@ def run_security_benchmark(
     database_url: str = DATABASE_URL,
 ) -> BenchmarkComparison:
     """Execute genuine scans on both local targets and persist a side-by-side benchmark."""
+    from scanner.orchestrator import run_security_scan
+
     high_res: ScanExecutionResult | None = None
     low_res: ScanExecutionResult | None = None
     high_err: str | None = None

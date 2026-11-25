@@ -22,6 +22,9 @@ class Scan(Base):
     __tablename__ = "scans"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("user_accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     target_url: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
     scan_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_utc_now

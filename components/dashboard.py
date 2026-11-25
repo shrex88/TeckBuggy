@@ -430,8 +430,10 @@ def render_settings_page(snapshot: dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
     if st.button("Reset User Data", key="btn_reset_workspace_data", type="primary"):
-        reset_scan_workspace_data()
+        current_user = st.session_state.get("auth_user")
+        user_id = current_user.get("id") if isinstance(current_user, dict) else None
+        reset_scan_workspace_data(user_id=user_id)
         st.session_state["settings_reset_notice"] = (
-            "Workspace data has been reset. You can now run a fresh security scan."
+            "Your workspace data has been reset. You can now run a fresh security scan."
         )
         st.rerun()

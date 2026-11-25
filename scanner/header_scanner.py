@@ -229,9 +229,10 @@ def scan_headers(
     *,
     session: requests.Session | None = None,
     validated: ValidatedTarget | None = None,
+    allow_public: bool | None = None,
 ) -> tuple[list[StandardFinding], requests.Response]:
     """Fetch an authorised local target and run HTTP security header checks."""
-    vt = validated or validate_target_url(target_url)
-    resp = safe_fetch(vt.normalized_url, method="GET", session=session)
+    vt = validated or validate_target_url(target_url, allow_public=allow_public)
+    resp = safe_fetch(vt.normalized_url, method="GET", session=session, allow_public=allow_public)
     findings = analyze_headers(dict(resp.headers), scheme=vt.scheme, target_path=vt.base_path)
     return findings, resp

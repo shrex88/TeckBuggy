@@ -63,6 +63,13 @@ def main() -> None:
         render_landing_and_login()
         return
 
+    current_user_id = st.session_state["auth_user"].get("id")
+    try:
+        snapshot = get_dashboard_snapshot(user_id=current_user_id)
+    except DatabaseError as exc:
+        st.error(f"Database error loading user snapshot: {exc}")
+        st.stop()
+
     selected_page = render_sidebar(
         active_page=st.session_state["active_page"],
         total_scans=snapshot["total_scans"],

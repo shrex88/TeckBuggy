@@ -10,7 +10,7 @@ from typing import Any, Optional
 from sqlalchemy import func, or_, select
 
 from config import DATABASE_URL
-from database.database import get_session, init_db
+from database.database import get_db_url, get_session, init_db
 from database.models import UserAccount
 
 
@@ -39,10 +39,11 @@ def verify_password(password: str, stored_hash: str) -> bool:
     return hmac.compare_digest(candidate_hex, expected_hex)
 
 
-def ensure_default_admin(database_url: str = DATABASE_URL) -> None:
+def ensure_default_admin(database_url: Optional[str] = None) -> None:
     """Seed a default analyst account if no user accounts exist yet."""
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         count = session.scalar(select(func.count(UserAccount.id))) or 0
         if count == 0:
             session.add(
@@ -61,7 +62,7 @@ def register_user(
     email: str,
     password: str,
     full_name: str = "",
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
 ) -> dict[str, Any]:
     """Register a new SENTINEL AI user account in SQLite."""
     clean_user = username.strip().lower()
@@ -75,8 +76,9 @@ def register_user(
     if len(password) < 6:
         raise AuthError("Password must be at least 6 characters.")
 
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         existing = session.scalar(
             select(UserAccount).where(
                 or_(UserAccount.username == clean_user, UserAccount.email == clean_email)
@@ -106,15 +108,16 @@ def register_user(
 def authenticate_user(
     identifier: str,
     password: str,
-    database_url: str = DATABASE_URL,
+    database_url: Optional[str] = None,
 ) -> Optional[dict[str, Any]]:
     """Authenticate a user by username or email and return their profile dict."""
     clean_id = identifier.strip().lower()
     if not clean_id or not password:
         return None
 
-    init_db(database_url)
-    with get_session(database_url) as session:
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
         account = session.scalar(
             select(UserAccount).where(
                 or_(UserAccount.username == clean_id, UserAccount.email == clean_id)

@@ -109,9 +109,10 @@ def scan_exposed_files(
     validated: ValidatedTarget | None = None,
     paths: Iterable[str] = PREDEFINED_EXPOSED_PATHS,
     rate_limit_delay: float = 0.05,
+    allow_public: bool | None = None,
 ) -> list[StandardFinding]:
     """Check the predefined sensitive paths using safe metadata-only requests."""
-    vt = validated or validate_target_url(target_url)
+    vt = validated or validate_target_url(target_url, allow_public=allow_public)
     http_session = session or requests.Session()
     findings: list[StandardFinding] = []
     base = vt.normalized_url.rstrip("/")
@@ -119,7 +120,7 @@ def scan_exposed_files(
     # Baseline soft-404 / SPA catch-all detection on a guaranteed-nonexistent path
     baseline_sig: tuple[int, str, str] | None = None
     baseline_url = f"{base}/__sentinel_soft404_probe_9f3a__"
-    validate_target_url(baseline_url)
+    validate_target_url(baseline_url, allow_public=allow_public)
     baseline_probe = _probe_metadata(http_session, baseline_url)
     if baseline_probe is not None and baseline_probe[0] == 200:
         baseline_sig = baseline_probe
@@ -133,7 +134,7 @@ def scan_exposed_files(
 
         checked += 1
         probe_url = f"{base}{path}"
-        validate_target_url(probe_url)
+        validate_target_url(probe_url, allow_public=allow_public)
 
         probe_res = _probe_metadata(http_session, probe_url)
         if probe_res is None:

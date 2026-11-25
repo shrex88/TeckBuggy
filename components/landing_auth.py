@@ -227,7 +227,6 @@ def render_landing_and_login() -> None:
                     if user is None:
                         st.error("Invalid username/email or password.")
                     else:
-                        reset_scan_workspace_data()
                         st.session_state["auth_user"] = user
                         st.session_state["active_page"] = "overview"
                         st.rerun()
@@ -257,7 +256,6 @@ def render_landing_and_login() -> None:
                                 password=reg_pass,
                                 full_name=full_name,
                             )
-                            reset_scan_workspace_data()
                             st.session_state["auth_user"] = user
                             st.session_state["active_page"] = "overview"
                             st.rerun()

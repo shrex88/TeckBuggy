@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator, Optional
 
-from sqlalchemy import Engine, create_engine, delete, event, func, select
+from sqlalchemy import Engine, create_engine, delete, event, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+import config
 from config import DATA_DIR, DATABASE_URL, REPORTS_DIR
 from database.models import (
     ApprovalRecord,
@@ -38,6 +40,16 @@ class DatabaseError(RuntimeError):
     """Raised when a database initialization or query operation fails."""
 
 
+def get_db_url(database_url: Optional[str] = None) -> str:
+    """Resolve database URL dynamically from argument, env var, or config."""
+    if database_url:
+        return str(database_url)
+    env_url = os.getenv("SENTINEL_DATABASE_URL")
+    if env_url:
+        return env_url
+    return str(getattr(config, "DATABASE_URL", DATABASE_URL))
+
+
 def _configure_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) -> None:
     """Enable SQLite foreign key enforcement and WAL mode for reliability."""
     cursor = dbapi_connection.cursor()
@@ -45,16 +57,17 @@ def _configure_sqlite_pragmas(dbapi_connection: Any, _connection_record: Any) ->
     cursor.close()
 
 
-def create_db_engine(database_url: str = DATABASE_URL) -> Engine:
+def create_db_engine(database_url: Optional[str] = None) -> Engine:
     """Create and configure a SQLAlchemy engine."""
-    connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
+    resolved_url = get_db_url(database_url)
+    connect_args = {"check_same_thread": False} if resolved_url.startswith("sqlite") else {}
     engine = create_engine(
-        database_url,
+        resolved_url,
         echo=False,
         future=True,
         connect_args=connect_args,
     )
-    if database_url.startswith("sqlite"):
+    if resolved_url.startswith("sqlite"):
         event.listen(engine, "connect", _configure_sqlite_pragmas)
     return engine
 
@@ -63,16 +76,22 @@ _engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker[Session]] = None
 
 
-def get_engine(database_url: str = DATABASE_URL) -> Engine:
+def get_engine(database_url: Optional[str] = None) -> Engine:
     """Return the singleton SQLAlchemy engine, creating it if needed."""
     global _engine, _SessionLocal
-    if _engine is None:
-        if database_url.startswith("sqlite:///"):
-            db_file = Path(database_url.replace("sqlite:///", "", 1))
+    resolved_url = get_db_url(database_url)
+    if _engine is None or str(_engine.url) != resolved_url:
+        if _engine is not None:
+            try:
+                _engine.dispose()
+            except Exception:
+                pass
+        if resolved_url.startswith("sqlite:///"):
+            db_file = Path(resolved_url.replace("sqlite:///", "", 1))
             db_file.parent.mkdir(parents=True, exist_ok=True)
         else:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _engine = create_db_engine(database_url)
+        _engine = create_db_engine(resolved_url)
         _SessionLocal = sessionmaker(
             bind=_engine,
             autoflush=False,
@@ -82,11 +101,20 @@ def get_engine(database_url: str = DATABASE_URL) -> Engine:
     return _engine
 
 
-def init_db(database_url: str = DATABASE_URL) -> Engine:
-    """Initialize all database tables safely."""
+def init_db(database_url: Optional[str] = None) -> Engine:
+    """Initialize all database tables safely and ensure additive columns exist."""
     try:
-        engine = get_engine(database_url)
+        resolved_url = get_db_url(database_url)
+        engine = get_engine(resolved_url)
         Base.metadata.create_all(bind=engine)
+        # Additive migration: ensure user_id exists on scans table in SQLite
+        if resolved_url.startswith("sqlite"):
+            with engine.connect() as conn:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE scans ADD COLUMN user_id INTEGER REFERENCES user_accounts(id)")
+                    conn.commit()
+                except Exception:
+                    pass
         return engine
     except SQLAlchemyError as exc:
         logger.exception("Failed to initialize database schema.")
@@ -94,10 +122,11 @@ def init_db(database_url: str = DATABASE_URL) -> Engine:
 
 
 @contextmanager
-def get_session(database_url: str = DATABASE_URL) -> Generator[Session, None, None]:
+def get_session(database_url: Optional[str] = None) -> Generator[Session, None, None]:
     """Provide a transactional SQLAlchemy session with automatic rollback on error."""
-    if _SessionLocal is None:
-        init_db(database_url)
+    resolved_url = get_db_url(database_url)
+    if _SessionLocal is None or _engine is None or str(_engine.url) != resolved_url:
+        init_db(resolved_url)
     assert _SessionLocal is not None
     session = _SessionLocal()
     try:
@@ -120,14 +149,21 @@ def reset_engine() -> None:
     _SessionLocal = None
 
 
-def get_dashboard_snapshot(database_url: str = DATABASE_URL) -> dict[str, Any]:
+def get_dashboard_snapshot(
+    database_url: Optional[str] = None,
+    user_id: int | None = None,
+) -> dict[str, Any]:
     """Fetch real scan and finding aggregates from SQLite for the Overview dashboard.
 
     Returns an empty-state snapshot when no scans have been executed yet.
     """
-    init_db(database_url)
-    with get_session(database_url) as session:
-        total_scans = session.scalar(select(func.count(Scan.id))) or 0
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
+        scans_count_stmt = select(func.count(Scan.id))
+        if user_id is not None:
+            scans_count_stmt = scans_count_stmt.where(Scan.user_id == user_id)
+        total_scans = session.scalar(scans_count_stmt) or 0
         if total_scans == 0:
             return {
                 "has_scans": False,
@@ -144,20 +180,24 @@ def get_dashboard_snapshot(database_url: str = DATABASE_URL) -> dict[str, Any]:
                 "total_reports": 0,
             }
 
-        latest_scan = session.scalar(
-            select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc()).limit(1)
-        )
-        recent_scans = list(
-            session.scalars(
-                select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc()).limit(8)
-            ).all()
-        )
-        all_findings = list(
-            session.scalars(
-                select(Finding).order_by(Finding.risk_score.desc(), Finding.id.desc())
-            ).all()
-        )
-        total_reports = session.scalar(select(func.count(Report.id))) or 0
+        latest_scan_stmt = select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc())
+        recent_scans_stmt = select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc()).limit(8)
+        if user_id is not None:
+            latest_scan_stmt = latest_scan_stmt.where(Scan.user_id == user_id)
+            recent_scans_stmt = recent_scans_stmt.where(Scan.user_id == user_id)
+
+        latest_scan = session.scalar(latest_scan_stmt.limit(1))
+        recent_scans = list(session.scalars(recent_scans_stmt).all())
+
+        findings_stmt = select(Finding).join(Scan).order_by(Finding.risk_score.desc(), Finding.id.desc())
+        if user_id is not None:
+            findings_stmt = findings_stmt.where(Scan.user_id == user_id)
+        all_findings = list(session.scalars(findings_stmt).all())
+
+        reports_stmt = select(func.count(Report.id)).join(Scan)
+        if user_id is not None:
+            reports_stmt = reports_stmt.where(Scan.user_id == user_id)
+        total_reports = session.scalar(reports_stmt) or 0
 
         severity_counts: dict[str, int] = {}
         owasp_counts: dict[str, int] = {}
@@ -232,6 +272,7 @@ def save_scan_results(
     target_url: str,
     security_score: float,
     findings_data: list[dict[str, Any]],
+    user_id: int | None = None,
     status: str = "completed",
     database_url: str = DATABASE_URL,
 ) -> int:
@@ -239,6 +280,7 @@ def save_scan_results(
     init_db(database_url)
     with get_session(database_url) as session:
         scan = Scan(
+            user_id=user_id,
             target_url=target_url,
             security_score=security_score,
             total_findings=len(findings_data),
@@ -263,15 +305,17 @@ def save_scan_results(
         return int(scan.id)
 
 
-def get_all_scans(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
+def get_all_scans(
+    database_url: str = DATABASE_URL,
+    user_id: int | None = None,
+) -> list[dict[str, Any]]:
     """Return all recorded scans ordered newest first."""
     init_db(database_url)
     with get_session(database_url) as session:
-        scans = list(
-            session.scalars(
-                select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc())
-            ).all()
-        )
+        stmt = select(Scan).order_by(Scan.scan_date.desc(), Scan.id.desc())
+        if user_id is not None:
+            stmt = stmt.where(Scan.user_id == user_id)
+        scans = list(session.scalars(stmt).all())
         return [
             {
                 "id": s.id,
@@ -293,6 +337,7 @@ def get_all_scans(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
 def get_findings(
     *,
     scan_id: int | None = None,
+    user_id: int | None = None,
     severity: str | None = None,
     owasp_category: str | None = None,
     database_url: str = DATABASE_URL,
@@ -300,9 +345,11 @@ def get_findings(
     """Query persisted findings with optional filters."""
     init_db(database_url)
     with get_session(database_url) as session:
-        stmt = select(Finding).order_by(Finding.risk_score.desc(), Finding.id.desc())
+        stmt = select(Finding).join(Scan).order_by(Finding.risk_score.desc(), Finding.id.desc())
         if scan_id is not None:
             stmt = stmt.where(Finding.scan_id == scan_id)
+        if user_id is not None:
+            stmt = stmt.where(Scan.user_id == user_id)
         if severity and severity != "All":
             stmt = stmt.where(Finding.severity == severity)
         if owasp_category and owasp_category != "All":
@@ -529,33 +576,50 @@ def get_regression_alerts(database_url: str = DATABASE_URL) -> list[dict[str, An
         ]
 
 
-def reset_scan_workspace_data(database_url: str = DATABASE_URL) -> None:
-    """Clear operational scan, finding, proposal, audit, and report records on new login.
+def reset_scan_workspace_data(
+    database_url: Optional[str] = None,
+    user_id: int | None = None,
+) -> None:
+    """Clear operational scan, finding, proposal, audit, and report records.
 
-    User accounts (`user_accounts`) are preserved so authentication credentials remain intact.
+    If user_id is provided, deletes scans belonging to user_id or unassigned (user_id IS NULL)
+    to cleanly reset the active user's workspace.
+    User accounts (`user_accounts`) are preserved.
     """
-    init_db(database_url)
-    with get_session(database_url) as session:
-        for model in (
-            ConfidenceFactor,
-            ValidationResult,
-            RegressionWarning,
-            RemediationEvaluation,
-            ConfidenceOutcome,
-            ApprovalRecord,
-            RollbackRecord,
-            ConfigBackup,
-            RemediationProposal,
-            Finding,
-            Report,
-            Scan,
-            BenchmarkRun,
-            RegressionAlert,
-            AuditLog,
-        ):
-            session.execute(delete(model))
+    resolved_url = get_db_url(database_url)
+    init_db(resolved_url)
+    with get_session(resolved_url) as session:
+        if user_id is not None:
+            user_scans = list(
+                session.scalars(
+                    select(Scan).where(
+                        or_(Scan.user_id == user_id, Scan.user_id.is_(None))
+                    )
+                ).all()
+            )
+            for s in user_scans:
+                session.delete(s)
+        else:
+            for model in (
+                ConfidenceFactor,
+                ValidationResult,
+                RegressionWarning,
+                RemediationEvaluation,
+                ConfidenceOutcome,
+                ApprovalRecord,
+                RollbackRecord,
+                ConfigBackup,
+                RemediationProposal,
+                Finding,
+                Report,
+                Scan,
+                BenchmarkRun,
+                RegressionAlert,
+                AuditLog,
+            ):
+                session.execute(delete(model))
 
-    if REPORTS_DIR.exists():
+    if user_id is None and REPORTS_DIR.exists():
         for pdf_file in REPORTS_DIR.glob("*.pdf"):
             try:
                 pdf_file.unlink()

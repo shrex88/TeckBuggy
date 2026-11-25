@@ -171,9 +171,10 @@ def scan_cookies(
     session: requests.Session | None = None,
     validated: ValidatedTarget | None = None,
     paths: tuple[str, ...] = ("/", "/session-test"),
+    allow_public: bool | None = None,
 ) -> list[StandardFinding]:
     """Scan an authorised local target for insecure cookie configurations."""
-    vt = validated or validate_target_url(target_url)
+    vt = validated or validate_target_url(target_url, allow_public=allow_public)
     findings: list[StandardFinding] = []
     seen_keys: set[tuple[str, str, str]] = set()
 
@@ -181,7 +182,7 @@ def scan_cookies(
     for path in paths:
         url = vt.normalized_url if path == "/" else f"{base}{path}"
         try:
-            resp = safe_fetch(url, method="GET", session=session)
+            resp = safe_fetch(url, method="GET", session=session, allow_public=allow_public)
         except requests.RequestException:
             continue
         raw_cookies = _extract_set_cookie_headers(resp)

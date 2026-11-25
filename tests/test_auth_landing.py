@@ -13,6 +13,7 @@ from database import (
     ensure_default_admin,
     get_dashboard_snapshot,
     get_session,
+    init_db,
     register_user,
     reset_engine,
     reset_scan_workspace_data,
@@ -97,10 +98,15 @@ def test_settings_reset_button_clears_workspace(auth_db_url: str, monkeypatch: p
     from streamlit.testing.v1 import AppTest
     import config
     import database.database as db_mod
+    import database.auth as auth_mod
 
     monkeypatch.setenv("SENTINEL_DATABASE_URL", auth_db_url)
     monkeypatch.setattr(config, "DATABASE_URL", auth_db_url)
     monkeypatch.setattr(db_mod, "DATABASE_URL", auth_db_url)
+    monkeypatch.setattr(auth_mod, "DATABASE_URL", auth_db_url)
+    reset_engine()
+    init_db(auth_db_url)
+    ensure_default_admin(auth_db_url)
 
     app_path = Path(__file__).resolve().parent.parent / "app.py"
     at = AppTest.from_file(app_path, default_timeout=15)
@@ -113,17 +119,18 @@ def test_settings_reset_button_clears_workspace(auth_db_url: str, monkeypatch: p
     with get_session(auth_db_url) as session:
         session.add(
             Scan(
+                user_id=1,
                 target_url="http://127.0.0.1:8000/",
                 security_score=75.0,
                 total_findings=2,
                 status="completed",
             )
         )
-    assert get_dashboard_snapshot(auth_db_url)["total_scans"] == 1
+    assert get_dashboard_snapshot(auth_db_url, user_id=1)["total_scans"] == 1
 
     [b for b in at.sidebar.button if b.key == "nav_settings"][0].click().run()
     reset_btn = [b for b in at.button if b.key == "btn_reset_workspace_data"]
     assert len(reset_btn) == 1
     reset_btn[0].click().run()
     assert not at.exception
-    assert get_dashboard_snapshot(auth_db_url)["total_scans"] == 0
+    assert get_dashboard_snapshot(auth_db_url, user_id=1)["total_scans"] == 0

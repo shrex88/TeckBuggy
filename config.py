@@ -86,6 +86,11 @@ ALLOWED_DOCKER_HOSTS: frozenset[str] = frozenset(
     for h in os.getenv("SENTINEL_ALLOWED_DOCKER_HOSTS", "demo-lab,sentinel-demo-lab").split(",")
     if h.strip()
 )
+ALLOW_PUBLIC_TARGETS: bool = os.getenv("SENTINEL_ALLOW_PUBLIC_TARGETS", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 DEFAULT_REQUEST_TIMEOUT: float = 5.0
 MAX_REDIRECTS: int = 3
 MAX_RESPONSE_BYTES: int = 512 * 1024  # 512 KB cap for defensive inspection

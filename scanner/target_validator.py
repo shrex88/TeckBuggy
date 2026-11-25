@@ -11,6 +11,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 
 from config import (
+    ALLOW_PUBLIC_TARGETS,
     ALLOWED_DOCKER_HOSTS,
     ALLOWED_LOCAL_HOSTS,
     DEFAULT_REQUEST_TIMEOUT,
@@ -62,12 +63,13 @@ def validate_target_url(
     raw_url: str,
     *,
     allowed_docker_hosts: Iterable[str] = ALLOWED_DOCKER_HOSTS,
+    allow_public: bool | None = None,
     resolver: ResolverFn | None = None,
 ) -> ValidatedTarget:
-    """Validate that a target URL is strictly an authorised local or allowlisted Docker service.
+    """Validate that a target URL is an authorised local, Docker service, or verified public web target.
 
-    Prevents SSRF, public IP scanning, external domain scanning, non-HTTP schemes,
-    embedded credentials, and DNS rebinding to non-local addresses.
+    Prevents internal cloud metadata (169.254.169.254), non-HTTP schemes,
+    embedded credentials, and DNS rebinding to internal metadata.
     """
     if not raw_url or not isinstance(raw_url, str):
         raise TargetValidationError("Target URL must be a non-empty string.")
@@ -90,8 +92,9 @@ def validate_target_url(
     docker_allowlist = {h.strip().lower() for h in allowed_docker_hosts if h.strip()}
     is_standard_local = hostname in ALLOWED_LOCAL_HOSTS
     is_docker_allowed = hostname in docker_allowlist
+    can_allow_public = ALLOW_PUBLIC_TARGETS if allow_public is None else allow_public
 
-    if not (is_standard_local or is_docker_allowed):
+    if not (is_standard_local or is_docker_allowed or can_allow_public):
         raise TargetValidationError(
             f"Target host '{hostname}' is not authorised. Only localhost, 127.0.0.1, ::1, "
             "and explicitly allowlisted local Docker test services are allowed."
@@ -110,7 +113,7 @@ def validate_target_url(
         addr_info = resolve_fn(hostname, port)
     except OSError as exc:
         raise TargetValidationError(
-            f"DNS resolution failed for authorised host '{hostname}': {exc}"
+            f"DNS resolution failed for host '{hostname}': {exc}"
         ) from exc
 
     resolved_ips: list[str] = []
@@ -122,8 +125,17 @@ def validate_target_url(
     if not resolved_ips:
         raise TargetValidationError(f"No IP addresses resolved for '{hostname}'.")
 
-    # DNS rebinding & SSRF guard: every resolved IP must match policy
+    # Anti-SSRF & cloud metadata protection: always block link-local (169.254.*)
     for ip_str in resolved_ips:
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+            if ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_unspecified:
+                raise TargetValidationError(
+                    f"Forbidden address '{ip_str}' (link-local/metadata/multicast is blocked)."
+                )
+        except ValueError:
+            pass
+
         if is_standard_local:
             if not _is_loopback_ip(ip_str):
                 raise TargetValidationError(
@@ -162,6 +174,7 @@ def safe_fetch(
     max_bytes: int = MAX_RESPONSE_BYTES,
     session: requests.Session | None = None,
     allowed_docker_hosts: Iterable[str] = ALLOWED_DOCKER_HOSTS,
+    allow_public: bool | None = None,
     resolver: ResolverFn | None = None,
 ) -> requests.Response:
     """Perform an SSRF-safe HTTP request with redirect validation, timeouts, and size caps."""
@@ -172,6 +185,7 @@ def safe_fetch(
         validated = validate_target_url(
             current_url,
             allowed_docker_hosts=allowed_docker_hosts,
+            allow_public=allow_public,
             resolver=resolver,
         )
         resp = http_session.request(
@@ -210,6 +224,7 @@ def safe_fetch(
             validate_target_url(
                 current_url,
                 allowed_docker_hosts=allowed_docker_hosts,
+                allow_public=allow_public,
                 resolver=resolver,
             )
             continue

@@ -149,9 +149,10 @@ def scan_tls(
     target_url: str,
     *,
     validated: ValidatedTarget | None = None,
+    allow_public: bool | None = None,
 ) -> list[StandardFinding]:
     """Run TLS checks on HTTPS targets, or record unencrypted HTTP transport finding."""
-    vt = validated or validate_target_url(target_url)
+    vt = validated or validate_target_url(target_url, allow_public=allow_public)
     if vt.scheme != "https":
         return [
             StandardFinding(

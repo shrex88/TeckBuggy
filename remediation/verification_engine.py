@@ -10,7 +10,6 @@ from config import DATABASE_URL
 from database.database import get_session, init_db, log_audit_event
 from database.models import Finding, RemediationEvaluation, RemediationProposal
 from intelligence.security_proof import compare_scans
-from scanner.orchestrator import run_security_scan
 
 
 def verify_remediation_proposal(
@@ -21,6 +20,7 @@ def verify_remediation_proposal(
     database_url: str = DATABASE_URL,
 ) -> dict[str, Any]:
     """Run a fresh defensive scan and verify whether the target finding is resolved."""
+    from scanner.orchestrator import run_security_scan
     init_db(database_url)
     with get_session(database_url) as session:
         proposal = session.get(RemediationProposal, proposal_id)
