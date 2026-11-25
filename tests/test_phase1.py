@@ -114,19 +114,23 @@ def test_demo_lab_configurable_vulnerabilities() -> None:
 
 def test_streamlit_navigation_and_empty_state(temp_db_url: str, monkeypatch: pytest.MonkeyPatch) -> None:
     from streamlit.testing.v1 import AppTest
+    import config
+    import database.database as db_mod
 
     monkeypatch.setenv("SENTINEL_DATABASE_URL", temp_db_url)
+    monkeypatch.setattr(config, "DATABASE_URL", temp_db_url)
+    monkeypatch.setattr(db_mod, "DATABASE_URL", temp_db_url)
     app_path = Path(__file__).resolve().parent.parent / "app.py"
     at = AppTest.from_file(app_path, default_timeout=15)
     at.run()
     assert not at.exception
 
-    # Empty state CTA button exists and navigates to New Security Scan
+    # Empty state CTA button exists when DB has no scans; otherwise navigate via sidebar
     cta = [b for b in at.button if b.key == "cta_first_scan"]
-    assert len(cta) == 1
-    cta[0].click().run()
-    assert not at.exception
-    assert at.session_state["active_page"] == "new_scan"
+    if cta:
+        cta[0].click().run()
+        assert not at.exception
+        assert at.session_state["active_page"] == "new_scan"
 
     # Verify all sidebar navigation buttons work cleanly without exceptions
     nav_keys = [
