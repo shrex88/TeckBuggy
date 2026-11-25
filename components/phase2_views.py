@@ -9,7 +9,7 @@ import streamlit as st
 
 from components.charts import build_risk_matrix_chart
 from components.dashboard import render_page_header
-from config import APPLICATION_PROFILES, DEMO_LAB_HOST, DEMO_LAB_PORT, OWASP_CATEGORIES
+from config import APPLICATION_PROFILES, OWASP_CATEGORIES
 from database import get_all_scans, get_findings, update_finding_status
 from intelligence import classify_risk_level
 from scanner import TargetValidationError, run_security_scan
@@ -41,14 +41,13 @@ def render_new_scan_page() -> None:
         unsafe_allow_html=True,
     )
 
-    default_target = f"http://{DEMO_LAB_HOST}:{DEMO_LAB_PORT}"
     col1, col2 = st.columns([1.4, 1], gap="medium")
     with col1:
         target_url = st.text_input(
             "Authorised Local Target URL",
-            value=default_target,
+            value="http://127.0.0.1:8000",
             key="scan_target_url",
-            help="Examples: http://127.0.0.1:5050 or http://localhost:5050",
+            help="Examples: http://127.0.0.1:8000 or http://localhost:3000",
         )
     with col2:
         app_profile = st.selectbox(

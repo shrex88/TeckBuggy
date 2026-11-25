@@ -11,8 +11,10 @@ from werkzeug.serving import make_server
 
 from database import get_findings, init_db, reset_engine, save_scan_results
 from database.models import RemediationProposal
-from demo_lab.app import create_demo_app
-from demo_lab.high_security_app import create_high_security_app
+from tests.conftest import (
+    create_test_high_sec_app as create_high_security_app,
+    create_test_low_sec_app as create_demo_app,
+)
 from digital_twin import (
     RECOMMENDED_CSP,
     get_simulation_details,
@@ -61,14 +63,6 @@ def two_live_apps(monkeypatch: pytest.MonkeyPatch) -> tuple[str, str]:
     low_srv = make_server("127.0.0.1", 0, low_app)
     high_url = f"http://127.0.0.1:{high_srv.server_port}"
     low_url = f"http://127.0.0.1:{low_srv.server_port}"
-
-    import config
-    import remediation.fix_validator as fv
-
-    monkeypatch.setattr(config, "HIGH_SECURITY_APP_URL", high_url)
-    monkeypatch.setattr(config, "LOW_SECURITY_APP_URL", low_url)
-    monkeypatch.setattr(fv, "HIGH_SECURITY_APP_URL", high_url)
-    monkeypatch.setattr(fv, "LOW_SECURITY_APP_URL", low_url)
 
     t1 = threading.Thread(target=high_srv.serve_forever, daemon=True)
     t2 = threading.Thread(target=low_srv.serve_forever, daemon=True)

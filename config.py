@@ -21,33 +21,10 @@ DATABASE_URL: str = os.getenv(
     f"sqlite:///{DATABASE_PATH.as_posix()}",
 )
 
-DEMO_LAB_HOST: str = os.getenv("SENTINEL_DEMO_HOST", "127.0.0.1")
-DEMO_LAB_PORT: int = int(os.getenv("SENTINEL_DEMO_PORT", "5050"))
-HIGH_SEC_HOST: str = os.getenv("SENTINEL_HIGH_SEC_HOST", "127.0.0.1")
-HIGH_SEC_PORT: int = int(os.getenv("SENTINEL_HIGH_SEC_PORT", "5051"))
-
-HIGH_SECURITY_APP_URL: str = f"http://{HIGH_SEC_HOST}:{HIGH_SEC_PORT}"
-LOW_SECURITY_APP_URL: str = f"http://{DEMO_LAB_HOST}:{DEMO_LAB_PORT}"
-
 REMEDIATION_API_TOKEN: str = os.getenv(
     "SENTINEL_REMEDIATION_TOKEN",
     "sentinel-local-lab-approval-token",
 )
-
-AUTHORISED_TARGETS: dict[str, dict[str, object]] = {
-    "Application A (High-Security Reference)": {
-        "url": HIGH_SECURITY_APP_URL,
-        "role": "high_security",
-        "remediable": False,
-        "description": "Read-only hardened local Flask reference application.",
-    },
-    "Application B (Low-Security Demo Lab)": {
-        "url": LOW_SECURITY_APP_URL,
-        "role": "low_security",
-        "remediable": True,
-        "description": "Configurable local Flask demonstration target with allowlisted remediation API.",
-    },
-}
 
 ALLOWLISTED_ACTIONS: dict[str, dict[str, str]] = {
     "ENABLE_CSP": {

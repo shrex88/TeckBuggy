@@ -12,7 +12,7 @@ from components.charts import (
     build_security_score_gauge,
     build_vulnerability_distribution_chart,
 )
-from config import APP_SUBTITLE, APP_VERSION, DATABASE_PATH, DEMO_LAB_HOST, DEMO_LAB_PORT
+from config import APP_SUBTITLE, APP_VERSION, DATABASE_PATH
 from database import get_latest_benchmark_run
 
 
@@ -392,15 +392,15 @@ def render_settings_page(snapshot: dict[str, Any]) -> None:
             f"""
             <div class="sentinel-panel">
                 <div class="panel-header">
-                    <span class="panel-title">Local Demonstration Lab</span>
-                    <span class="panel-badge">ISOLATED FLASK TARGET</span>
+                    <span class="panel-title">Target Scope & Runtime</span>
+                    <span class="panel-badge">LOCALHOST ONLY</span>
                 </div>
                 <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.6rem;">
-                    <strong>Target Bind Address:</strong><br/>
-                    <code>http://{DEMO_LAB_HOST}:{DEMO_LAB_PORT}</code>
+                    <strong>Authorised Scope:</strong><br/>
+                    <code>localhost</code>, <code>127.0.0.1</code>, <code>::1</code>, and allowlisted local Docker services
                 </p>
                 <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.3rem;">
-                    <strong>Scope:</strong> Localhost-only synthetic test environment
+                    <strong>Security Mode:</strong> Defensive &amp; Detective Only
                 </p>
                 <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0;">
                     <strong>Platform Version:</strong> <code>{APP_VERSION}</code>

@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from config import DATABASE_URL, HIGH_SECURITY_APP_URL, LOW_SECURITY_APP_URL
+from config import DATABASE_URL
 from database.database import log_audit_event, save_benchmark_run
 from scanner.orchestrator import ScanExecutionResult, run_security_scan
 
@@ -79,8 +79,8 @@ def _control_status(
 
 def run_security_benchmark(
     *,
-    high_sec_url: str = HIGH_SECURITY_APP_URL,
-    low_sec_url: str = LOW_SECURITY_APP_URL,
+    high_sec_url: str,
+    low_sec_url: str,
     application_profile: str = "Fintech / Payment Application",
     database_url: str = DATABASE_URL,
 ) -> BenchmarkComparison:

@@ -1,38 +1,7 @@
 services:
-  high-sec-app:
-    build: .
-    container_name: sentinel-high-sec-app
-    command: ["python", "-m", "demo_lab.high_security_app"]
-    environment:
-      - SENTINEL_HIGH_SEC_HOST=0.0.0.0
-      - SENTINEL_HIGH_SEC_PORT=5051
-      - SENTINEL_DOCKER_MODE=1
-    ports:
-      - "127.0.0.1:5051:5051"
-
-  demo-lab:
-    build: .
-    container_name: sentinel-demo-lab
-    command: ["python", "-m", "demo_lab.app"]
-    environment:
-      - SENTINEL_DEMO_HOST=0.0.0.0
-      - SENTINEL_DEMO_PORT=5050
-      - SENTINEL_DOCKER_MODE=1
-    ports:
-      - "127.0.0.1:5050:5050"
-
   sentinel-ai:
     build: .
     container_name: sentinel-ai-dashboard
-    depends_on:
-      - high-sec-app
-      - demo-lab
-    environment:
-      - SENTINEL_ALLOWED_DOCKER_HOSTS=high-sec-app,demo-lab,sentinel-demo-lab
-      - SENTINEL_HIGH_SEC_HOST=high-sec-app
-      - SENTINEL_HIGH_SEC_PORT=5051
-      - SENTINEL_DEMO_HOST=demo-lab
-      - SENTINEL_DEMO_PORT=5050
     ports:
       - "127.0.0.1:8501:8501"
     volumes:

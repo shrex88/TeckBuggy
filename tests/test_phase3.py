@@ -17,7 +17,7 @@ from database import (
     reset_engine,
     save_scan_results,
 )
-from demo_lab.app import create_demo_app
+from tests.conftest import create_test_low_sec_app as create_demo_app
 from intelligence import SecurityProofError, compare_scans
 from remediation import SUPPORTED_FRAMEWORKS, generate_remediation_playbook
 from reporting import generate_pdf_report

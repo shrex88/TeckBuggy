@@ -19,9 +19,6 @@ SENTINEL AI is an evidence-driven web application security assessment, benchmark
 - **`intelligence/`** — `owasp_mapper.py`, `risk_engine.py`, `benchmark.py`, `security_proof.py`, `regression_guard.py`, `remediation_confidence.py`, `gemini_client.py`, and `ai_remediation.py`.
 - **`remediation/`** — `fix_generator.py`, `fix_validator.py`, `regression_analyzer.py`, `approval_manager.py`, `fix_applier.py`, `rollback_manager.py`, and `verification_engine.py`.
 - **`reporting/`** — `pdf_generator.py` generating 16-section branded PDF reports from SQLite.
-- **`demo_lab/`** — Isolated local Flask targets:
-  - `high_security_app.py` (Application A — read-only hardened reference on `127.0.0.1:5051`).
-  - `app.py` (Application B — configurable low-security target on `127.0.0.1:5050` with token-protected `/api/remediation/*`).
 - **`database/`** — Additive SQLite + SQLAlchemy models (`Scan`, `Finding`, `Report`, `RemediationProposal`, `ApprovalRecord`, `ConfigBackup`, `RollbackRecord`, `BenchmarkRun`, `RegressionAlert`, `AuditLog`).
 
 ---
@@ -39,22 +36,11 @@ Set `GEMINI_API_KEY` in `.env` (never commit real secrets). If `GEMINI_API_KEY` 
 
 ---
 
-## Starting the Services
+## Starting SENTINEL AI
 
-Run each service in a separate terminal:
-
-1. **Application A (High-Security Reference, Read-Only — `127.0.0.1:5051`):**
-   ```powershell
-   python -m demo_lab.high_security_app
-   ```
-2. **Application B (Low-Security Demo Lab — `127.0.0.1:5050`):**
-   ```powershell
-   python -m demo_lab.app
-   ```
-3. **SENTINEL AI Dashboard (`http://localhost:8501`):**
-   ```powershell
-   python -m streamlit run app.py
-   ```
+```powershell
+python -m streamlit run app.py
+```
 
 Or via Docker Compose:
 ```powershell

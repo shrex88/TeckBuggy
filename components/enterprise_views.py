@@ -11,11 +11,7 @@ import streamlit as st
 
 from components.charts import build_benchmark_comparison_chart
 from components.dashboard import render_page_header
-from config import (
-    APPLICATION_PROFILES,
-    HIGH_SECURITY_APP_URL,
-    LOW_SECURITY_APP_URL,
-)
+from config import APPLICATION_PROFILES
 from database import get_all_scans, get_audit_logs, get_findings, get_regression_alerts
 from intelligence import (
     RegressionGuardError,
@@ -53,14 +49,14 @@ def render_security_benchmark_page() -> None:
     c1, c2, c3 = st.columns([1.2, 1.2, 1], gap="medium")
     with c1:
         high_url = st.text_input(
-            "Application A (High-Security, Read-Only)",
-            value=HIGH_SECURITY_APP_URL,
+            "Application A (High-Security Target URL)",
+            value="http://127.0.0.1:8000",
             key="bench_high_url",
         )
     with c2:
         low_url = st.text_input(
-            "Application B (Low-Security, Remediable)",
-            value=LOW_SECURITY_APP_URL,
+            "Application B (Comparison Target URL)",
+            value="http://127.0.0.1:3000",
             key="bench_low_url",
         )
     with c3:
@@ -197,8 +193,8 @@ def render_approval_centre_page() -> None:
         return
 
     target_url = st.text_input(
-        "Target Remediable Application URL (Application B Only)",
-        value=LOW_SECURITY_APP_URL,
+        "Authorised Local Target URL",
+        value="http://127.0.0.1:8000",
         key="approval_target_url",
     )
 

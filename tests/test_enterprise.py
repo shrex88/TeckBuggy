@@ -10,8 +10,10 @@ from werkzeug.serving import make_server
 
 from config import REMEDIATION_API_TOKEN
 from database import get_audit_logs, get_findings, init_db, reset_engine, save_scan_results
-from demo_lab.app import create_demo_app
-from demo_lab.high_security_app import create_high_security_app
+from tests.conftest import (
+    create_test_high_sec_app as create_high_security_app,
+    create_test_low_sec_app as create_demo_app,
+)
 from intelligence import (
     evaluate_security_regression,
     generate_ai_remediation_proposal,
@@ -53,15 +55,7 @@ def two_local_apps(monkeypatch: pytest.MonkeyPatch) -> tuple[str, str]:
     high_url = f"http://127.0.0.1:{high_srv.server_port}"
     low_url = f"http://127.0.0.1:{low_srv.server_port}"
 
-    # Point config/validator URLs to the ephemeral test ports
-    import config
-    import remediation.fix_validator as fv
-
-    monkeypatch.setattr(config, "HIGH_SECURITY_APP_URL", high_url)
-    monkeypatch.setattr(config, "LOW_SECURITY_APP_URL", low_url)
-    monkeypatch.setattr(fv, "HIGH_SECURITY_APP_URL", high_url)
-    monkeypatch.setattr(fv, "LOW_SECURITY_APP_URL", low_url)
-
+    # Point test URLs to the ephemeral test ports
     t1 = threading.Thread(target=high_srv.serve_forever, daemon=True)
     t2 = threading.Thread(target=low_srv.serve_forever, daemon=True)
     t1.start()
@@ -123,13 +117,13 @@ def test_gemini_payload_validation_and_fallback(temp_db_url: str) -> None:
     assert prop["approval_status"] == "Pending Review"
 
 
-def test_remediation_governance_and_high_security_protection(two_local_apps: tuple[str, str]) -> None:
-    high_url, low_url = two_local_apps
+def test_remediation_governance_and_validation(two_local_apps: tuple[str, str]) -> None:
+    _, low_url = two_local_apps
 
-    # High-Security App A must never be a remediation target
-    with pytest.raises(RemediationValidationError, match="read-only"):
+    # External target rejected
+    with pytest.raises(Exception):
         validate_remediation_request(
-            target_url=high_url,
+            target_url="https://example.com",
             action_id="ENABLE_CSP",
             approval_status="Approved",
         )

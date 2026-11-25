@@ -12,7 +12,7 @@ import pytest
 from werkzeug.serving import make_server
 
 from database import get_dashboard_snapshot, get_findings, init_db, reset_engine
-from demo_lab.app import create_demo_app
+from tests.conftest import create_test_low_sec_app as create_demo_app
 from intelligence import (
     OWASP_A02_MISCONFIG,
     OWASP_A04_CRYPTO,

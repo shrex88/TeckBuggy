@@ -8,7 +8,8 @@ import streamlit as st
 
 from components.charts import build_security_score_gauge
 from components.dashboard import render_page_header
-from config import APPLICATION_PROFILES, AUTHORISED_TARGETS
+from config import APPLICATION_PROFILES
+from database import get_all_scans
 from digital_twin import (
     RECOMMENDED_CSP,
     DigitalTwinSnapshotError,
@@ -36,13 +37,22 @@ def render_digital_twin_page() -> None:
 
     c1, c2, c3 = st.columns([1.3, 1.1, 1], gap="medium")
     with c1:
-        app_choice = st.selectbox(
-            "Select Authorised Local Application",
-            options=list(AUTHORISED_TARGETS.keys()),
-            index=1,
-            key="twin_app_select",
-        )
-        target_url = str(AUTHORISED_TARGETS[app_choice]["url"])
+        scans = [s for s in get_all_scans() if s["status"] == "completed"]
+        scanned_urls = list(dict.fromkeys(s["target_url"] for s in scans))
+        if scanned_urls:
+            target_url = st.selectbox(
+                "Select Scanned Local Application",
+                options=scanned_urls,
+                key="twin_app_select",
+            )
+            app_choice = target_url
+        else:
+            target_url = st.text_input(
+                "Authorised Local Application URL",
+                value="http://127.0.0.1:8000",
+                key="twin_app_input",
+            )
+            app_choice = target_url
     with c2:
         sim_mode = st.selectbox(
             "What-If Simulation Mode",

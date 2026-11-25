@@ -15,7 +15,7 @@ from database import (
     init_db,
     reset_engine,
 )
-from demo_lab.app import create_demo_app
+from tests.conftest import create_test_low_sec_app as create_demo_app
 
 
 @pytest.fixture()

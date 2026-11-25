@@ -6,7 +6,6 @@ import pandas as pd
 import streamlit as st
 
 from components.dashboard import render_page_header
-from config import LOW_SECURITY_APP_URL
 from database import get_all_scans
 from learning import (
     CHALLENGES,
@@ -147,8 +146,9 @@ def render_learning_mode_page() -> None:
         if not scans:
             st.info("Run a baseline scan of Application B (127.0.0.1:5050) first to unlock hands-on challenges.")
         else:
-            scan_map = {f"Scan #{s['id']} · {s['target_url']} ({s['scan_date']})": s["id"] for s in scans}
+            scan_map = {f"Scan #{s['id']} · {s['target_url']} ({s['scan_date']})": s for s in scans}
             base_lbl = st.selectbox("Select Baseline Scan", list(scan_map.keys()), key="chal_base_scan")
+            chosen_scan = scan_map[base_lbl]
             for ch in CHALLENGES:
                 with st.expander(f"{ch.title} ({ch.rule_id}) · Badge: {ch.badge_name}", expanded=True):
                     for step in ch.instructions:
@@ -157,8 +157,8 @@ def render_learning_mode_page() -> None:
                         with st.spinner("Running fresh scan and verifying via Security Proof..."):
                             v = verify_practical_challenge(
                                 challenge_id=ch.challenge_id,
-                                baseline_scan_id=scan_map[base_lbl],
-                                target_url=LOW_SECURITY_APP_URL,
+                                baseline_scan_id=chosen_scan["id"],
+                                target_url=chosen_scan["target_url"],
                             )
                             if v["verified"]:
                                 st.success(v["message"])
