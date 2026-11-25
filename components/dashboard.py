@@ -13,7 +13,7 @@ from components.charts import (
     build_vulnerability_distribution_chart,
 )
 from config import APP_SUBTITLE, APP_VERSION, DATABASE_PATH
-from database import get_latest_benchmark_run
+from database import get_latest_benchmark_run, reset_scan_workspace_data
 
 
 def render_page_header(kicker: str, title: str, subtitle: str, badge: str) -> None:
@@ -409,3 +409,29 @@ def render_settings_page(snapshot: dict[str, Any]) -> None:
             """,
             unsafe_allow_html=True,
         )
+
+    reset_msg = st.session_state.pop("settings_reset_notice", None)
+    if reset_msg:
+        st.success(reset_msg)
+
+    st.markdown(
+        """
+        <div class="sentinel-panel" style="margin-top: 1rem;">
+            <div class="panel-header">
+                <span class="panel-title">Workspace Data Management</span>
+                <span class="panel-badge">USER SESSION RESET</span>
+            </div>
+            <p style="color:#94A3B8; font-size:0.86rem; margin-bottom:0.2rem;">
+                Clear all recorded scans, vulnerability findings, AI remediation proposals,
+                confidence evaluations, audit logs, and generated PDF reports while keeping your user account intact.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Reset User Data", key="btn_reset_workspace_data", type="primary"):
+        reset_scan_workspace_data()
+        st.session_state["settings_reset_notice"] = (
+            "Workspace data has been reset. You can now run a fresh security scan."
+        )
+        st.rerun()
