@@ -113,7 +113,6 @@ NAV_SECTIONS: list[dict[str, str]] = [
     {"id": "vulnerabilities", "label": "Vulnerabilities", "icon": "⚠", "phase": "Findings"},
     {"id": "ai_intelligence", "label": "AI Risk Intelligence", "icon": "✦", "phase": "Risk"},
     {"id": "ai_copilot", "label": "AI Remediation Copilot", "icon": "✧", "phase": "Gemini"},
-    {"id": "digital_twin", "label": "Security Digital Twin", "icon": "❖", "phase": "Twin"},
     {"id": "remediation_confidence", "label": "Remediation Confidence", "icon": "◎", "phase": "Confidence"},
     {"id": "approval_centre", "label": "Developer Approval Centre", "icon": "✔", "phase": "Governance"},
     {"id": "remediation_history", "label": "Remediation History", "icon": "↺", "phase": "Audit"},

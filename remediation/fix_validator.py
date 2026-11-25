@@ -7,8 +7,41 @@ action allowlisting, and mandatory developer approval before execution.
 from __future__ import annotations
 
 from config import ALLOWLISTED_ACTIONS
-from digital_twin.csp_simulator import simulate_csp_policy
 from scanner.target_validator import validate_target_url
+
+
+def _validate_csp_syntax(policy: str) -> tuple[bool, list[str], list[str]]:
+    """Deterministic CSP syntax and unsafe-directive validator."""
+    cleaned = (policy or "").strip()
+    errors: list[str] = []
+    unsafe: list[str] = []
+    if not cleaned:
+        errors.append("CSP policy cannot be empty.")
+        return False, unsafe, errors
+    if "\n" in cleaned or "\r" in cleaned:
+        errors.append("CSP policy must not contain CR/LF newline characters.")
+    parsed: dict[str, list[str]] = {}
+    for raw_part in cleaned.split(";"):
+        part = raw_part.strip()
+        if not part:
+            continue
+        tokens = part.split()
+        name = tokens[0].lower()
+        parsed[name] = tokens[1:]
+        if not name.replace("-", "").isalpha():
+            errors.append(f"Invalid CSP directive name '{name}'.")
+        if not tokens[1:] and name != "upgrade-insecure-requests":
+            errors.append(f"Directive '{name}' has no source expressions.")
+        lower_vals = [v.lower() for v in tokens[1:]]
+        if "'unsafe-inline'" in lower_vals:
+            unsafe.append(f"{name} allows 'unsafe-inline'")
+        if "'unsafe-eval'" in lower_vals:
+            unsafe.append(f"{name} allows 'unsafe-eval'")
+        if "*" in lower_vals:
+            unsafe.append(f"{name} uses wildcard '*'")
+    if not parsed and not errors:
+        errors.append("No valid CSP directives were parsed.")
+    return len(errors) == 0, unsafe, errors
 
 
 class RemediationValidationError(ValueError):
@@ -68,15 +101,17 @@ def run_deterministic_proposal_validation(
 
     # 2. Configuration syntax validation
     if rid == "HDR-001" or clean_action == "ENABLE_CSP":
-        csp_sim = simulate_csp_policy(cfg.replace("Content-Security-Policy:", "").strip())
+        valid_syntax, unsafe_dirs, syntax_errs = _validate_csp_syntax(
+            cfg.replace("Content-Security-Policy:", "").strip()
+        )
         checks.append(
             {
                 "check_name": "CSP Syntax Validation",
-                "passed": csp_sim.valid_syntax and len(csp_sim.unsafe_directives) == 0,
+                "passed": valid_syntax and len(unsafe_dirs) == 0,
                 "details": (
                     "Valid CSP directives without unsafe-inline/unsafe-eval/wildcard."
-                    if csp_sim.valid_syntax and not csp_sim.unsafe_directives
-                    else "; ".join(csp_sim.syntax_errors + csp_sim.unsafe_directives)
+                    if valid_syntax and not unsafe_dirs
+                    else "; ".join(syntax_errs + unsafe_dirs)
                 ),
             }
         )

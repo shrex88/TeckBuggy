@@ -38,12 +38,12 @@ from remediation import (
 
 
 def render_security_benchmark_page() -> None:
-    """Render Unique Feature 1: Side-by-Side Security Benchmark (App A vs App B)."""
+    """Render Side-by-Side Security Benchmark (Target A vs Target B)."""
     render_page_header(
         kicker="COMPARATIVE BENCHMARK",
         title="Security Benchmark",
-        subtitle="Compare Application A (High-Security Read-Only) vs Application B (Low-Security Demo Lab) using genuine scan results.",
-        badge="APP A vs APP B",
+        subtitle="Compare two authorised local web applications side-by-side using genuine scan results.",
+        badge="TARGET A vs TARGET B",
     )
 
     c1, c2, c3 = st.columns([1.2, 1.2, 1], gap="medium")
@@ -173,17 +173,24 @@ def render_ai_copilot_page() -> None:
         st.caption(f"Secure Code Example ({proposal['framework']})")
         st.code(proposal["secure_code_example"], language="python" if proposal["framework"] in {"Flask", "Django"} else "nginx")
 
+        if st.button("Approve Proposal", key="copilot_approve_btn", type="primary"):
+            set_proposal_decision(proposal["id"], decision="Approved")
+            proposal["approval_status"] = "Approved"
+            st.session_state["last_proposal"] = proposal
+            st.success(f"Proposal #{proposal['id']} approved! Open Developer Approval Centre to apply or verify.")
+            st.rerun()
+
         if st.button("Open Developer Approval Centre", key="goto_approval_btn"):
             st.session_state["active_page"] = "approval_centre"
             st.rerun()
 
 
 def render_approval_centre_page() -> None:
-    """Render Unique Feature 5: Developer Approval Centre & Controlled Execution."""
+    """Render Developer Approval Centre & Controlled Execution."""
     render_page_header(
         kicker="HUMAN-IN-THE-LOOP GOVERNANCE",
         title="Developer Approval Centre",
-        subtitle="Review, approve/reject, apply allowlisted fixes to Application B, rollback, and verify resolution.",
+        subtitle="Review, approve/reject, apply allowlisted fixes to authorised local applications, rollback, and verify resolution.",
         badge="ASSISTED MODE",
     )
 
