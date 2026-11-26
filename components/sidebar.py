@@ -83,15 +83,20 @@ def render_sidebar(
             role = auth_user.get("role", "Security Analyst")
             st.markdown(
                 f"""
-                <div style="margin-top:10px;padding:10px 12px;border-radius:10px;
+                <div class="sidebar-user-card" style="margin-top:10px;padding:10px 12px;border-radius:10px;
                     background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.16);
                     font-size:0.8rem;">
-                    <div style="color:#F8FAFC;font-weight:600;">{display_name}</div>
-                    <div style="color:#94A3B8;font-size:0.74rem;">{role}</div>
+                    <div style="font-weight:600;">{display_name}</div>
+                    <div style="opacity:0.75;font-size:0.74rem;">{role}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            current_theme = st.session_state.get("theme_mode", "dark")
+            toggle_label = "☀ Light Mode" if current_theme == "dark" else "🌙 Dark Mode"
+            if st.button(toggle_label, key="btn_toggle_theme_sidebar", type="secondary", use_container_width=True):
+                st.session_state["theme_mode"] = "light" if current_theme == "dark" else "dark"
+                st.rerun()
             if st.button("Sign Out", key="nav_logout", type="secondary", use_container_width=True):
                 st.session_state["auth_user"] = None
                 st.session_state["active_page"] = "overview"

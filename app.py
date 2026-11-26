@@ -62,11 +62,138 @@ def _ensure_local_demo_server() -> bool:
         return False
 
 
+_LIGHT_THEME_CSS = """
+/* Light Liquid Glassmorphism Theme Overrides */
+:root {
+    --bg-primary: #f1f5f9;
+    --bg-secondary: #ffffff;
+    --bg-panel: rgba(255, 255, 255, 0.78);
+    --bg-panel-elevated: rgba(255, 255, 255, 0.92);
+    --border-glass: rgba(15, 23, 42, 0.10);
+    --border-glass-bright: rgba(2, 132, 199, 0.35);
+    --border-subtle: rgba(15, 23, 42, 0.12);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+}
+html, body, [class*="css"] {
+    color: #0f172a !important;
+}
+.stApp {
+    background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(14, 165, 233, 0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 15%, rgba(139, 92, 246, 0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 60% at 50% 110%, rgba(236, 72, 153, 0.10) 0%, transparent 70%),
+        linear-gradient(180deg, #f0f7ff 0%, #f8fafc 50%, #eef2ff 100%) !important;
+}
+header[data-testid="stHeader"] {
+    background: rgba(255, 255, 255, 0.78) !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.10) !important;
+}
+section[data-testid="stSidebar"] {
+    background: rgba(248, 250, 252, 0.86) !important;
+    border-right: 1px solid rgba(15, 23, 42, 0.10) !important;
+    box-shadow: 8px 0 30px rgba(15, 23, 42, 0.08) !important;
+}
+section[data-testid="stSidebar"] div.stButton > button {
+    background: rgba(255, 255, 255, 0.75) !important;
+    color: #334155 !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+section[data-testid="stSidebar"] div.stButton > button:hover {
+    background: rgba(14, 165, 233, 0.14) !important;
+    color: #0f172a !important;
+}
+section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(139, 92, 246, 0.20)) !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(2, 132, 199, 0.5) !important;
+}
+.brand-title,
+.sentinel-page-title {
+    background: linear-gradient(135deg, #0f172a 0%, #0284c7 65%, #7c3aed 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+.brand-tagline,
+.sentinel-page-kicker {
+    color: #0284c7 !important;
+}
+.sentinel-panel,
+.metric-card,
+.sentinel-table-wrap,
+.ai-suggestion-card,
+.sidebar-footer-card,
+.sidebar-user-card,
+.alert-row,
+.sentinel-feature-card,
+.sentinel-workflow-bar,
+.sentinel-login-header,
+.sentinel-how-card {
+    background: rgba(255, 255, 255, 0.78) !important;
+    border: 1px solid rgba(15, 23, 42, 0.10) !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    color: #0f172a !important;
+}
+.panel-title,
+.metric-value,
+.sentinel-hero-title,
+.sentinel-feature-card h4,
+.sentinel-wf-step strong,
+.sentinel-brand-name,
+.sentinel-portal-title,
+.sentinel-section-heading {
+    color: #0f172a !important;
+}
+.sentinel-page-subtitle,
+.sentinel-hero-sub,
+.sentinel-feature-card p,
+.sentinel-portal-sub,
+.metric-label,
+.metric-caption,
+.panel-badge {
+    color: #475569 !important;
+}
+.sentinel-glass-table thead th {
+    background: rgba(241, 245, 249, 0.92) !important;
+    color: #334155 !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.10) !important;
+}
+.sentinel-glass-table tbody td {
+    color: #0f172a !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+.sentinel-glass-table tbody td[style*="color:#94a3b8"] {
+    color: #475569 !important;
+}
+div.stButton > button[kind="secondary"] {
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+}
+div[data-baseweb="input"],
+div[data-baseweb="select"] > div {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(15, 23, 42, 0.16) !important;
+    color: #0f172a !important;
+}
+div[data-baseweb="input"] input,
+div[data-baseweb="select"] span {
+    color: #0f172a !important;
+}
+p, label, .stMarkdown, .stCaption {
+    color: #1e293b;
+}
+"""
+
+
 def _load_custom_css() -> None:
-    """Inject custom Sentinel AI stylesheet into the Streamlit page."""
+    """Inject custom Sentinel AI stylesheet (with dark/light mode support)."""
     css_path = ASSETS_DIR / "style.css"
-    if css_path.exists():
-        css_text = css_path.read_text(encoding="utf-8")
+    css_text = css_path.read_text(encoding="utf-8") if css_path.exists() else ""
+    if st.session_state.get("theme_mode", "dark") == "light":
+        css_text = f"{css_text}\n{_LIGHT_THEME_CSS}"
+    if css_text:
         st.markdown(f"<style>{css_text}</style>", unsafe_allow_html=True)
 
 
@@ -79,6 +206,9 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
+
+    if "theme_mode" not in st.session_state:
+        st.session_state["theme_mode"] = "dark"
 
     _ensure_local_demo_server()
     _load_custom_css()

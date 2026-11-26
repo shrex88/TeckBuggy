@@ -125,28 +125,92 @@ def render_landing_and_login() -> None:
             padding: 16px 18px;
             margin-bottom: 14px;
         }
+        .sentinel-section-heading {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #F8FAFC;
+            margin: 26px 0 12px 0;
+            letter-spacing: -0.01em;
+        }
+        .sentinel-how-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .sentinel-how-card {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(0, 240, 255, 0.18);
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .sentinel-how-step {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #00F0FF;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .sentinel-how-card h4 {
+            margin: 0 0 6px 0;
+            font-size: 0.95rem;
+            color: #F8FAFC;
+        }
+        .sentinel-how-card p {
+            margin: 0;
+            font-size: 0.82rem;
+            color: #94A3B8;
+            line-height: 1.45;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    left_col, right_col = st.columns([1.35, 1.0], gap="large")
-
-    with left_col:
-        logo_html = _logo_img_html(58)
+    # Top Landing Bar with Brand, Sign In, Create Account, and Theme Toggle
+    top_brand, top_spacer, top_signin, top_register, top_theme = st.columns([2.2, 1.4, 0.9, 1.05, 0.95], gap="small")
+    logo_html = _logo_img_html(48)
+    with top_brand:
         st.markdown(
             f"""
-            <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+            <div style="display:flex;align-items:center;gap:12px;">
                 {logo_html}
                 <div>
-                    <div style="font-size:1.35rem;font-weight:800;letter-spacing:0.04em;color:#F8FAFC;">
+                    <div class="sentinel-brand-name" style="font-size:1.25rem;font-weight:800;letter-spacing:0.04em;color:#F8FAFC;">
                         {APP_NAME}
                     </div>
-                    <div style="font-size:0.84rem;color:#00F0FF;font-weight:600;">
+                    <div style="font-size:0.78rem;color:#00F0FF;font-weight:600;">
                         {APP_TAGLINE} · v{APP_VERSION}
                     </div>
                 </div>
             </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with top_signin:
+        if st.button("Sign In", key="landing_top_signin", type="secondary", use_container_width=True):
+            st.session_state["landing_auth_mode"] = "signin"
+            st.rerun()
+    with top_register:
+        if st.button("Create Account", key="landing_top_register", type="primary", use_container_width=True):
+            st.session_state["landing_auth_mode"] = "register"
+            st.rerun()
+    with top_theme:
+        current_theme = st.session_state.get("theme_mode", "dark")
+        theme_label = "☀ Light" if current_theme == "dark" else "🌙 Dark"
+        if st.button(theme_label, key="btn_toggle_theme_landing", type="secondary", use_container_width=True):
+            st.session_state["theme_mode"] = "light" if current_theme == "dark" else "dark"
+            st.rerun()
+
+    st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
+
+    left_col, right_col = st.columns([1.3, 1.0], gap="large")
+
+    with left_col:
+        st.markdown(
+            """
             <div class="sentinel-hero-badge">AI-Powered Web Application Security Platform</div>
             <h1 class="sentinel-hero-title">
                 Detect misconfigurations.<br/>
@@ -157,24 +221,6 @@ def render_landing_and_login() -> None:
                 with OWASP Top 10:2025 risk intelligence, Google Gemini remediation proposals,
                 independent confidence scoring, and human-in-the-loop approval.
             </p>
-            <div class="sentinel-feature-grid">
-                <div class="sentinel-feature-card">
-                    <h4>🛡 OWASP Top 10:2025 Scanner</h4>
-                    <p>Strict local-target validation, header, cookie, TLS, and exposed artifact detection.</p>
-                </div>
-                <div class="sentinel-feature-card">
-                    <h4>🤖 Gemini AI Remediation Copilot</h4>
-                    <p>Framework-ready code & config proposals with deterministic fallback when offline.</p>
-                </div>
-                <div class="sentinel-feature-card">
-                    <h4>🎯 Confidence & Safety Engine</h4>
-                    <p>7-factor weighted confidence, technical validation, and regression impact checks.</p>
-                </div>
-                <div class="sentinel-feature-card">
-                    <h4>✅ Security Proof & PDF Reports</h4>
-                    <p>Before-and-after verification scans, rollback safety, and 16-section PDF reports.</p>
-                </div>
-            </div>
             <div class="sentinel-workflow-bar">
                 <div class="sentinel-wf-step"><span>01</span><strong>Detect</strong></div>
                 <div class="sentinel-wf-step"><span>02</span><strong>Prioritise</strong></div>
@@ -188,21 +234,30 @@ def render_landing_and_login() -> None:
         )
 
     with right_col:
+        auth_mode = st.session_state.get("landing_auth_mode", "signin")
+        mode_hint = (
+            "Create a new personal security workspace."
+            if auth_mode == "register"
+            else "Sign in to launch scans, review AI remediations, and export audit reports."
+        )
         st.markdown(
-            """
+            f"""
             <div class="sentinel-login-header">
-                <div style="font-size:1.15rem;font-weight:700;color:#F8FAFC;margin-bottom:4px;">
+                <div class="sentinel-portal-title" style="font-size:1.15rem;font-weight:700;color:#F8FAFC;margin-bottom:4px;">
                     Workspace Access Portal
                 </div>
-                <div style="font-size:0.84rem;color:#94A3B8;">
-                    Sign in to launch scans, review AI remediations, and export audit reports.
+                <div class="sentinel-portal-sub" style="font-size:0.84rem;color:#94A3B8;">
+                    {mode_hint}
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        tab_signin, tab_register = st.tabs(["Sign In", "Create Account"])
+        if auth_mode == "register":
+            tab_register, tab_signin = st.tabs(["Create Account", "Sign In"])
+        else:
+            tab_signin, tab_register = st.tabs(["Sign In", "Create Account"])
 
         with tab_signin:
             with st.form("login_form", clear_on_submit=False):
@@ -261,3 +316,53 @@ def render_landing_and_login() -> None:
                             st.rerun()
                         except AuthError as exc:
                             st.error(str(exc))
+
+    # Full-width Features & How It Works sections below the Hero + Portal
+    st.markdown(
+        """
+        <div class="sentinel-section-heading">Platform Features</div>
+        <div class="sentinel-feature-grid">
+            <div class="sentinel-feature-card">
+                <h4>🛡 OWASP Top 10:2025 Scanner</h4>
+                <p>Inspects HTTP security headers, cookie flags (HttpOnly, Secure, SameSite), TLS certificates, and exposed config endpoints for public HTTPS and local targets.</p>
+            </div>
+            <div class="sentinel-feature-card">
+                <h4>🤖 Gemini AI Remediation Copilot</h4>
+                <p>Generates framework-ready fixes (Flask, Django, Nginx, Apache, Express) via Google Gemini with deterministic playbook fallback when offline.</p>
+            </div>
+            <div class="sentinel-feature-card">
+                <h4>🎯 Explainable Risk &amp; Confidence Engine</h4>
+                <p>Scores findings across 5 weighted risk factors and evaluates remediation safety with 7-factor confidence &amp; regression guardrails.</p>
+            </div>
+            <div class="sentinel-feature-card">
+                <h4>✅ Security Proof &amp; 16-Section PDF Reports</h4>
+                <p>Runs before-and-after verification scans to prove vulnerabilities are resolved and exports branded executive PDF audit reports.</p>
+            </div>
+        </div>
+
+        <div class="sentinel-section-heading">How It Works</div>
+        <div class="sentinel-how-grid">
+            <div class="sentinel-how-card">
+                <div class="sentinel-how-step">Step 01</div>
+                <h4>Create Account or Sign In</h4>
+                <p>Each user gets an isolated workspace in SQLite that preserves all their scan history, findings, and login telemetry.</p>
+            </div>
+            <div class="sentinel-how-card">
+                <div class="sentinel-how-step">Step 02</div>
+                <h4>Enter or Upload Target URL</h4>
+                <p>Provide a live <code>https://</code> site or local target (or upload a <code>.txt</code>/<code>.csv</code> list) and run a non-destructive scan.</p>
+            </div>
+            <div class="sentinel-how-card">
+                <div class="sentinel-how-step">Step 03</div>
+                <h4>Inspect Graphs &amp; AI Fixes</h4>
+                <p>Filter findings by Critical &rarr; Low severity, explore risk graphs, and review Gemini AI recommended configuration changes.</p>
+            </div>
+            <div class="sentinel-how-card">
+                <div class="sentinel-how-step">Step 04</div>
+                <h4>Approve, Verify &amp; Export</h4>
+                <p>Approve fixes in the Governance Centre, verify resolution with Security Proof, and download your PDF report.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
