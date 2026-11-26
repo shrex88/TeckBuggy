@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pandas as pd
@@ -17,20 +18,35 @@ from database import get_latest_benchmark_run, get_user_account_summary, reset_s
 
 
 def render_page_header(kicker: str, title: str, subtitle: str, badge: str) -> None:
-    """Render a consistent enterprise page header."""
-    st.markdown(
-        f"""
-        <div class="sentinel-header">
-            <div>
-                <div class="sentinel-page-kicker">{kicker}</div>
-                <h1 class="sentinel-page-title">{title}</h1>
-                <div class="sentinel-page-subtitle">{subtitle}</div>
+    """Render a consistent enterprise page header with Dark/Light mode toggle."""
+    hdr_col, theme_col = st.columns([11, 0.9], gap="small")
+    with hdr_col:
+        st.markdown(
+            f"""
+            <div class="sentinel-header">
+                <div>
+                    <div class="sentinel-page-kicker">{kicker}</div>
+                    <h1 class="sentinel-page-title">{title}</h1>
+                    <div class="sentinel-page-subtitle">{subtitle}</div>
+                </div>
+                <div class="header-pill">● {badge}</div>
             </div>
-            <div class="header-pill">● {badge}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
+    with theme_col:
+        current_theme = st.session_state.get("theme_mode", "dark")
+        toggle_icon = "☀️" if current_theme == "dark" else "🌙"
+        safe_key = re.sub(r"[^a-z0-9_]+", "_", title.lower()).strip("_")
+        if st.button(
+            toggle_icon,
+            key=f"btn_header_theme_{safe_key}",
+            type="secondary",
+            use_container_width=True,
+            help="Switch Light / Dark Mode",
+        ):
+            st.session_state["theme_mode"] = "light" if current_theme == "dark" else "dark"
+            st.rerun()
 
 
 def _render_kpi_cards(snapshot: dict[str, Any]) -> None:

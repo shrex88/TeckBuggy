@@ -182,8 +182,32 @@ div[data-baseweb="input"] input,
 div[data-baseweb="select"] span {
     color: #0f172a !important;
 }
-p, label, .stMarkdown, .stCaption {
-    color: #1e293b;
+p, label, .stMarkdown, .stCaption, h1, h2, h3, h4 {
+    color: #0f172a !important;
+}
+code {
+    color: #0369a1 !important;
+    background: rgba(14, 165, 233, 0.10) !important;
+}
+.header-pill,
+.sentinel-hero-badge {
+    background: rgba(14, 165, 233, 0.12) !important;
+    color: #0369a1 !important;
+    border-color: rgba(2, 132, 199, 0.35) !important;
+}
+[style*="color:#F8FAFC"], [style*="color:#f8fafc"],
+[style*="color:#E2E8F0"], [style*="color:#e2e8f0"],
+[style*="color: #F8FAFC"], [style*="color: #f8fafc"] {
+    color: #0f172a !important;
+}
+[style*="color:#CBD5E1"], [style*="color:#cbd5e1"],
+[style*="color:#94A3B8"], [style*="color:#94a3b8"],
+[style*="color: #94A3B8"], [style*="color: #94a3b8"] {
+    color: #334155 !important;
+}
+[style*="color:#00F0FF"], [style*="color:#00f0ff"],
+[style*="color: #00F0FF"], [style*="color: #00f0ff"] {
+    color: #0284c7 !important;
 }
 """
 

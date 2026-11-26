@@ -5,19 +5,33 @@ from __future__ import annotations
 from typing import Any, Optional
 
 import plotly.graph_objects as go
+import streamlit as st
 
 from config import SEVERITY_COLORS
 
 
+def _is_light_mode() -> bool:
+    try:
+        return st.session_state.get("theme_mode", "dark") == "light"
+    except Exception:
+        return False
+
+
 def _apply_dark_layout(fig: go.Figure, height: int = 290) -> go.Figure:
-    """Apply consistent Sentinel AI dark theme styling to a Plotly figure."""
+    """Apply consistent Sentinel AI theme styling (dark or light) to a Plotly figure."""
+    light = _is_light_mode()
+    font_color = "#0F172A" if light else "#CBD5E1"
+    grid_color = "rgba(15, 23, 42, 0.10)" if light else "rgba(148, 163, 184, 0.14)"
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", color="#CBD5E1", size=12),
+        font=dict(family="Plus Jakarta Sans, Inter, sans-serif", color=font_color, size=12),
+        legend=dict(font=dict(color=font_color)),
         margin=dict(l=16, r=16, t=24, b=16),
         height=height,
     )
+    fig.update_xaxes(tickfont=dict(color=font_color), title_font=dict(color=font_color), gridcolor=grid_color)
+    fig.update_yaxes(tickfont=dict(color=font_color), title_font=dict(color=font_color), gridcolor=grid_color)
     return fig
 
 
@@ -35,17 +49,20 @@ def build_security_score_gauge(score: Optional[float]) -> go.Figure:
         else:
             bar_color = "#10B981"
 
+    light = _is_light_mode()
+    num_color = ("#0F172A" if light else "#F8FAFC") if score is not None else "#64748B"
+    title_color = "#475569" if light else "#94A3B8"
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number",
             value=display_value,
             number={
                 "suffix": " / 100" if score is not None else "",
-                "font": {"size": 28, "color": "#F8FAFC" if score is not None else "#64748B"},
+                "font": {"size": 28, "color": num_color},
             },
             title={
                 "text": "Posture Index" if score is not None else "Awaiting First Scan",
-                "font": {"size": 13, "color": "#94A3B8"},
+                "font": {"size": 13, "color": title_color},
             },
             gauge={
                 "axis": {
