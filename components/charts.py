@@ -20,9 +20,10 @@ def _is_light_mode() -> bool:
 def _apply_dark_layout(fig: go.Figure, height: int = 290) -> go.Figure:
     """Apply consistent Sentinel AI theme styling (dark or light) to a Plotly figure."""
     light = _is_light_mode()
-    font_color = "#0F172A" if light else "#CBD5E1"
-    grid_color = "rgba(15, 23, 42, 0.10)" if light else "rgba(148, 163, 184, 0.14)"
+    font_color = "#000000" if light else "#CBD5E1"
+    grid_color = "rgba(0, 0, 0, 0.10)" if light else "rgba(148, 163, 184, 0.14)"
     fig.update_layout(
+        template="plotly_white" if light else "plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Plus Jakarta Sans, Inter, sans-serif", color=font_color, size=12),
@@ -50,8 +51,8 @@ def build_security_score_gauge(score: Optional[float]) -> go.Figure:
             bar_color = "#10B981"
 
     light = _is_light_mode()
-    num_color = ("#0F172A" if light else "#F8FAFC") if score is not None else "#64748B"
-    title_color = "#475569" if light else "#94A3B8"
+    num_color = ("#000000" if light else "#F8FAFC") if score is not None else "#64748B"
+    title_color = "#111827" if light else "#94A3B8"
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number",

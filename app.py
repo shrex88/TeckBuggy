@@ -183,7 +183,18 @@ div[data-baseweb="select"] span {
     color: #0f172a !important;
 }
 p, label, .stMarkdown, .stCaption, h1, h2, h3, h4 {
-    color: #0f172a !important;
+    color: #000000 !important;
+}
+.js-plotly-plot .xtick text,
+.js-plotly-plot .ytick text,
+.js-plotly-plot .gtitle,
+.js-plotly-plot .xtitle,
+.js-plotly-plot .ytitle,
+.js-plotly-plot .legendtext,
+.js-plotly-plot .annotation-text,
+.js-plotly-plot .indicator .numbers,
+.js-plotly-plot .indicator .title {
+    fill: #000000 !important;
 }
 code {
     color: #0369a1 !important;
@@ -198,12 +209,12 @@ code {
 [style*="color:#F8FAFC"], [style*="color:#f8fafc"],
 [style*="color:#E2E8F0"], [style*="color:#e2e8f0"],
 [style*="color: #F8FAFC"], [style*="color: #f8fafc"] {
-    color: #0f172a !important;
+    color: #000000 !important;
 }
 [style*="color:#CBD5E1"], [style*="color:#cbd5e1"],
 [style*="color:#94A3B8"], [style*="color:#94a3b8"],
 [style*="color: #94A3B8"], [style*="color: #94a3b8"] {
-    color: #334155 !important;
+    color: #111827 !important;
 }
 [style*="color:#00F0FF"], [style*="color:#00f0ff"],
 [style*="color: #00F0FF"], [style*="color: #00f0ff"] {

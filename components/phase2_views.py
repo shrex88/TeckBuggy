@@ -253,13 +253,13 @@ def render_new_scan_page() -> None:
                     '<div class="sentinel-panel"><div class="panel-header"><span class="panel-title">Risk Score by Finding</span><span class="panel-badge">RISK GRAPH</span></div></div>',
                     unsafe_allow_html=True,
                 )
-                st.plotly_chart(build_risk_matrix_chart(last_findings), use_container_width=True)
+                st.plotly_chart(build_risk_matrix_chart(last_findings), use_container_width=True, theme=None)
             with g2:
                 st.markdown(
                     '<div class="sentinel-panel"><div class="panel-header"><span class="panel-title">Severity Distribution</span><span class="panel-badge">POSTURE SPLIT</span></div></div>',
                     unsafe_allow_html=True,
                 )
-                st.plotly_chart(build_vulnerability_distribution_chart(severity_counts), use_container_width=True)
+                st.plotly_chart(build_vulnerability_distribution_chart(severity_counts), use_container_width=True, theme=None)
 
             st.markdown(
                 """
