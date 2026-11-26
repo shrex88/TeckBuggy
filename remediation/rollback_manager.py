@@ -9,22 +9,28 @@ from sqlalchemy import select
 
 from config import DATABASE_URL, DEFAULT_REQUEST_TIMEOUT, REMEDIATION_API_TOKEN
 from database.database import get_session, init_db, log_audit_event
-from database.models import ConfigBackup, RemediationProposal, RollbackRecord
+from database.models import ConfigBackup, Finding, RemediationProposal, RollbackRecord, Scan
 
 
 class RollbackError(RuntimeError):
     """Raised when a configuration rollback cannot be completed or verified."""
 
 
-def list_backups(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
-    """Return stored configuration backups newest first."""
+def list_backups(
+    database_url: str = DATABASE_URL,
+    user_id: int | None = None,
+) -> list[dict[str, Any]]:
+    """Return stored configuration backups newest first, optionally scoped to user_id."""
     init_db(database_url)
     with get_session(database_url) as session:
-        rows = list(
-            session.scalars(
-                select(ConfigBackup).order_by(ConfigBackup.created_at.desc(), ConfigBackup.id.desc())
-            ).all()
-        )
+        stmt = select(ConfigBackup).order_by(ConfigBackup.created_at.desc(), ConfigBackup.id.desc())
+        if user_id is not None:
+            stmt = (
+                stmt.join(Finding, ConfigBackup.finding_id == Finding.id)
+                .join(Scan, Finding.scan_id == Scan.id)
+                .where(Scan.user_id == user_id)
+            )
+        rows = list(session.scalars(stmt).all())
         return [
             {
                 "id": b.id,

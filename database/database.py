@@ -488,7 +488,7 @@ def get_audit_logs(
     with get_session(resolved_url) as session:
         stmt = select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
         if user_id is not None:
-            stmt = stmt.where(or_(AuditLog.user_id == user_id, AuditLog.user_id.is_(None)))
+            stmt = stmt.where(AuditLog.user_id == user_id)
         rows = list(session.scalars(stmt.limit(limit)).all())
         return [
             {
@@ -642,9 +642,17 @@ def reset_scan_workspace_data(
                         )
                     )
                 )
-            # Clear benchmark runs and regression alerts tied to deleted or missing scans
+            # Clear benchmark runs, regression alerts, backups, and audit logs for this user's workspace
             session.execute(delete(BenchmarkRun))
             session.execute(delete(RegressionAlert))
+            if deleted_scan_ids:
+                finding_ids_subq = select(Finding.id).where(Finding.scan_id.in_(deleted_scan_ids))
+                session.execute(delete(ConfigBackup).where(ConfigBackup.finding_id.in_(finding_ids_subq)))
+            session.execute(
+                delete(AuditLog).where(
+                    or_(AuditLog.user_id == user_id, AuditLog.user_id.is_(None))
+                )
+            )
         else:
             for model in (
                 ConfidenceFactor,

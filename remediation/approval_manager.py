@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from config import DATABASE_URL
 from database.database import get_session, init_db, log_audit_event
-from database.models import ApprovalRecord, Finding, RemediationProposal
+from database.models import ApprovalRecord, Finding, RemediationProposal, Scan
 
 VALID_APPROVAL_STATES = frozenset({
     "Pending Review",
@@ -28,17 +28,23 @@ class ApprovalError(ValueError):
     """Raised when an invalid approval transition is requested."""
 
 
-def list_proposals(database_url: str = DATABASE_URL) -> list[dict[str, Any]]:
-    """Return all remediation proposals joined with finding context."""
+def list_proposals(
+    database_url: str = DATABASE_URL,
+    user_id: int | None = None,
+) -> list[dict[str, Any]]:
+    """Return remediation proposals joined with finding context, optionally scoped to user_id."""
     init_db(database_url)
     with get_session(database_url) as session:
-        proposals = list(
-            session.scalars(
-                select(RemediationProposal).order_by(
-                    RemediationProposal.created_at.desc(), RemediationProposal.id.desc()
-                )
-            ).all()
+        stmt = select(RemediationProposal).order_by(
+            RemediationProposal.created_at.desc(), RemediationProposal.id.desc()
         )
+        if user_id is not None:
+            stmt = (
+                stmt.join(Finding, RemediationProposal.finding_id == Finding.id)
+                .join(Scan, Finding.scan_id == Scan.id)
+                .where(Scan.user_id == user_id)
+            )
+        proposals = list(session.scalars(stmt).all())
         results: list[dict[str, Any]] = []
         for p in proposals:
             finding = session.get(Finding, p.finding_id)

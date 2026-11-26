@@ -240,7 +240,7 @@ def render_approval_centre_page() -> None:
         badge="ASSISTED MODE",
     )
 
-    proposals = list_proposals()
+    proposals = list_proposals(user_id=(st.session_state.get("auth_user") or {}).get("id"))
     if not proposals:
         st.info("No remediation proposals generated yet. Use AI Remediation Copilot to generate proposals.")
         return
@@ -364,7 +364,7 @@ def render_remediation_history_page() -> None:
     )
 
     st.subheader("Configuration Backups & Smart Rollback")
-    backups = list_backups()
+    backups = list_backups(user_id=(st.session_state.get("auth_user") or {}).get("id"))
     if backups:
         st.dataframe(pd.DataFrame(backups), use_container_width=True, hide_index=True)
         b_map = {
