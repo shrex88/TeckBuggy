@@ -19,7 +19,7 @@ from scanner.cookie_scanner import scan_cookies
 from scanner.exposed_file_scanner import scan_exposed_files
 from scanner.header_scanner import scan_headers
 from scanner.models import StandardFinding
-from scanner.target_validator import ValidatedTarget, validate_target_url
+from scanner.target_validator import ALLOWED_LOCAL_HOSTS, ValidatedTarget, validate_target_url
 from scanner.tls_scanner import scan_tls
 
 ProgressCallback = Callable[[float, str], None]
@@ -60,11 +60,14 @@ def run_security_scan(
     http_session = session or requests.Session()
     all_findings: list[StandardFinding] = []
 
+    is_streamlit_self_port = validated.hostname in ALLOWED_LOCAL_HOSTS and validated.port == 8501
+
     _notify(0.25, "Inspecting HTTP security headers...")
-    header_findings, _ = scan_headers(
-        validated.normalized_url, session=http_session, validated=validated, allow_public=allow_public
-    )
-    all_findings.extend(header_findings)
+    if not is_streamlit_self_port:
+        header_findings, _ = scan_headers(
+            validated.normalized_url, session=http_session, validated=validated, allow_public=allow_public
+        )
+        all_findings.extend(header_findings)
 
     _notify(0.45, "Analysing cookie security flags...")
     cookie_findings = scan_cookies(
