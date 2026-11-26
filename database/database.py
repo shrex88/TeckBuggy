@@ -617,8 +617,31 @@ def reset_scan_workspace_data(
                     )
                 ).all()
             )
+            deleted_scan_ids = [s.id for s in user_scans]
             for s in user_scans:
                 session.delete(s)
+            if deleted_scan_ids:
+                session.execute(
+                    delete(BenchmarkRun).where(
+                        or_(
+                            BenchmarkRun.high_sec_scan_id.in_(deleted_scan_ids),
+                            BenchmarkRun.low_sec_scan_id.in_(deleted_scan_ids),
+                        )
+                    )
+                )
+                session.execute(
+                    delete(RegressionAlert).where(
+                        or_(
+                            RegressionAlert.baseline_scan_id.in_(deleted_scan_ids),
+                            RegressionAlert.latest_scan_id.in_(deleted_scan_ids),
+                        )
+                    )
+                )
+            # Clear orphaned benchmark runs when no scans remain
+            remaining_scans = session.scalar(select(func.count(Scan.id))) or 0
+            if remaining_scans == 0:
+                session.execute(delete(BenchmarkRun))
+                session.execute(delete(RegressionAlert))
         else:
             for model in (
                 ConfidenceFactor,

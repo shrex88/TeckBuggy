@@ -478,6 +478,7 @@ def render_settings_page(snapshot: dict[str, Any]) -> None:
         current_user = st.session_state.get("auth_user")
         user_id = current_user.get("id") if isinstance(current_user, dict) else None
         reset_scan_workspace_data(user_id=user_id)
+        st.session_state.pop("last_scan_result", None)
         st.session_state["settings_reset_notice"] = (
             "Your workspace data has been reset. You can now run a fresh security scan."
         )
