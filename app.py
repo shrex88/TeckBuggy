@@ -166,7 +166,8 @@ section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
 .sentinel-glass-table tbody td[style*="color:#94a3b8"] {
     color: #475569 !important;
 }
-div.stButton > button[kind="secondary"] {
+div.stButton > button[kind="secondary"],
+.sentinel-nav-pill {
     background: rgba(255, 255, 255, 0.85) !important;
     color: #0f172a !important;
     border: 1px solid rgba(15, 23, 42, 0.15) !important;

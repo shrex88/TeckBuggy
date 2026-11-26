@@ -93,8 +93,14 @@ def render_sidebar(
                 unsafe_allow_html=True,
             )
             current_theme = st.session_state.get("theme_mode", "dark")
-            toggle_label = "☀ Light Mode" if current_theme == "dark" else "🌙 Dark Mode"
-            if st.button(toggle_label, key="btn_toggle_theme_sidebar", type="secondary", use_container_width=True):
+            toggle_label = "☀️" if current_theme == "dark" else "🌙"
+            if st.button(
+                toggle_label,
+                key="btn_toggle_theme_sidebar",
+                type="secondary",
+                use_container_width=True,
+                help="Switch Light / Dark Mode",
+            ):
                 st.session_state["theme_mode"] = "light" if current_theme == "dark" else "dark"
                 st.rerun()
             if st.button("Sign Out", key="nav_logout", type="secondary", use_container_width=True):

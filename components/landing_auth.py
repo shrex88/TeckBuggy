@@ -131,6 +131,33 @@ def render_landing_and_login() -> None:
             color: #F8FAFC;
             margin: 26px 0 12px 0;
             letter-spacing: -0.01em;
+            scroll-margin-top: 72px;
+        }
+        .sentinel-top-nav-links {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 6px;
+        }
+        .sentinel-nav-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.48rem 0.95rem;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.58);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #E2E8F0 !important;
+            text-decoration: none !important;
+            font-size: 0.84rem;
+            font-weight: 600;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .sentinel-nav-pill:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 240, 255, 0.48);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.22);
+            color: #FFFFFF !important;
         }
         .sentinel-how-grid {
             display: grid;
@@ -169,8 +196,10 @@ def render_landing_and_login() -> None:
         unsafe_allow_html=True,
     )
 
-    # Top Landing Bar with Brand, Sign In, Create Account, and Theme Toggle
-    top_brand, top_spacer, top_signin, top_register, top_theme = st.columns([2.2, 1.4, 0.9, 1.05, 0.95], gap="small")
+    # Top Landing Bar with Brand, Features, How It Works, Sign In, Create Account, and Icon Theme Toggle
+    top_brand, top_links, top_signin, top_register, top_theme = st.columns(
+        [1.9, 1.5, 0.85, 1.0, 0.45], gap="small"
+    )
     logo_html = _logo_img_html(48)
     with top_brand:
         st.markdown(
@@ -189,6 +218,16 @@ def render_landing_and_login() -> None:
             """,
             unsafe_allow_html=True,
         )
+    with top_links:
+        st.markdown(
+            """
+            <div class="sentinel-top-nav-links">
+                <a class="sentinel-nav-pill" href="#platform-features">Features</a>
+                <a class="sentinel-nav-pill" href="#how-it-works">How It Works</a>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     with top_signin:
         if st.button("Sign In", key="landing_top_signin", type="secondary", use_container_width=True):
             st.session_state["landing_auth_mode"] = "signin"
@@ -199,8 +238,14 @@ def render_landing_and_login() -> None:
             st.rerun()
     with top_theme:
         current_theme = st.session_state.get("theme_mode", "dark")
-        theme_label = "☀ Light" if current_theme == "dark" else "🌙 Dark"
-        if st.button(theme_label, key="btn_toggle_theme_landing", type="secondary", use_container_width=True):
+        theme_label = "☀️" if current_theme == "dark" else "🌙"
+        if st.button(
+            theme_label,
+            key="btn_toggle_theme_landing",
+            type="secondary",
+            use_container_width=True,
+            help="Switch Light / Dark Mode",
+        ):
             st.session_state["theme_mode"] = "light" if current_theme == "dark" else "dark"
             st.rerun()
 
@@ -320,7 +365,7 @@ def render_landing_and_login() -> None:
     # Full-width Features & How It Works sections below the Hero + Portal
     st.markdown(
         """
-        <div class="sentinel-section-heading">Platform Features</div>
+        <div id="platform-features" class="sentinel-section-heading">Platform Features</div>
         <div class="sentinel-feature-grid">
             <div class="sentinel-feature-card">
                 <h4>🛡 OWASP Top 10:2025 Scanner</h4>
@@ -340,7 +385,7 @@ def render_landing_and_login() -> None:
             </div>
         </div>
 
-        <div class="sentinel-section-heading">How It Works</div>
+        <div id="how-it-works" class="sentinel-section-heading">How It Works</div>
         <div class="sentinel-how-grid">
             <div class="sentinel-how-card">
                 <div class="sentinel-how-step">Step 01</div>
@@ -363,6 +408,7 @@ def render_landing_and_login() -> None:
                 <p>Approve fixes in the Governance Centre, verify resolution with Security Proof, and download your PDF report.</p>
             </div>
         </div>
+        <div style="height:2.5rem;"></div>
         """,
         unsafe_allow_html=True,
     )
