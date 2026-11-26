@@ -14,6 +14,7 @@ from components.charts import (
     build_vulnerability_distribution_chart,
 )
 from components.dashboard import render_page_header
+from components.enterprise_views import render_ai_copilot_section
 from config import APPLICATION_PROFILES, OWASP_CATEGORIES
 from database import get_all_scans, get_findings, update_finding_status
 from intelligence import classify_risk_level, is_gemini_configured
@@ -323,6 +324,13 @@ def render_new_scan_page() -> None:
                         "2) Enforce HTTPS/HSTS and Secure+HttpOnly+SameSite cookie flags, "
                         "3) Add X-Content-Type-Options: nosniff, Referrer-Policy, and Permissions-Policy."
                     )
+
+            st.markdown("<div style='height:0.65rem;'></div>", unsafe_allow_html=True)
+            render_ai_copilot_section(
+                last_findings,
+                key_prefix=f"scan_copilot_{last['scan_id']}",
+                show_section_header=True,
+            )
         else:
             st.success(f"Zero findings detected for {last['target_url']} — Security Score: {last['security_score']}/100.")
 

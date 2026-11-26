@@ -6,6 +6,8 @@ Remediation History, and Security Regression Guard.
 
 from __future__ import annotations
 
+import html
+
 import pandas as pd
 import streamlit as st
 
@@ -105,19 +107,31 @@ def render_security_benchmark_page() -> None:
     st.dataframe(pd.DataFrame(bench.control_matrix), use_container_width=True, hide_index=True)
 
 
-def render_ai_copilot_page() -> None:
-    """Render Unique Feature 3: SENTINEL AI Remediation Copilot (Gemini + Deterministic Fallback)."""
-    render_page_header(
-        kicker="ASSISTED REMEDIATION COPILOT",
-        title="AI Remediation Copilot",
-        subtitle="Generate structured remediation proposals via Google Gemini API (with deterministic fallback). Proposals require explicit developer approval.",
-        badge="GEMINI READY" if is_gemini_configured() else "FALLBACK MODE",
-    )
-
-    findings = get_findings(user_id=(st.session_state.get("auth_user") or {}).get("id"))
+def render_ai_copilot_section(
+    findings: list[dict],
+    key_prefix: str = "copilot",
+    show_section_header: bool = False,
+) -> None:
+    """Render the interactive AI Remediation Copilot solution generator for a list of findings."""
     if not findings:
-        st.info("No findings recorded yet. Run a scan first to generate AI remediation proposals.")
         return
+
+    if show_section_header:
+        st.markdown(
+            f"""
+            <div class="sentinel-panel">
+                <div class="panel-header">
+                    <span class="panel-title">AI Remediation Copilot — Solution &amp; Secure Code</span>
+                    <span class="panel-badge">{"GEMINI READY" if is_gemini_configured() else "FALLBACK MODE"}</span>
+                </div>
+                <p style="color:#94A3B8;font-size:0.85rem;margin-bottom:0;">
+                    Select any finding from this scan and your target framework to generate a full AI remediation
+                    proposal, before/after configuration diff, and framework-ready secure code.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     c1, c2 = st.columns([1.6, 1], gap="medium")
     with c1:
@@ -125,14 +139,25 @@ def render_ai_copilot_page() -> None:
             f"#{f['id']} · [{f['severity']}] {f['rule_id']} — {f['title']} ({f['target_path']})": f
             for f in findings
         }
-        chosen_label = st.selectbox("Select Finding to Analyse", list(finding_map.keys()), key="copilot_finding")
+        chosen_label = st.selectbox(
+            "Select Finding to Analyse",
+            list(finding_map.keys()),
+            key=f"{key_prefix}_finding",
+        )
         chosen = finding_map[chosen_label]
     with c2:
-        framework = st.selectbox("Target Framework", list(SUPPORTED_FRAMEWORKS), index=0, key="copilot_fw")
+        framework = st.selectbox(
+            "Target Framework",
+            list(SUPPORTED_FRAMEWORKS),
+            index=0,
+            key=f"{key_prefix}_fw",
+        )
 
-    if st.button("Generate AI Fix", key="gen_ai_fix_btn", type="primary"):
+    proposal_state_key = f"{key_prefix}_last_proposal"
+    if st.button("Generate AI Fix", key=f"{key_prefix}_gen_btn", type="primary"):
         with st.spinner("Generating validated remediation proposal..."):
             proposal = generate_ai_remediation_proposal(chosen, framework=framework)
+            st.session_state[proposal_state_key] = proposal
             st.session_state["last_proposal"] = proposal
             if proposal["source"] == "gemini_ai":
                 st.success(
@@ -143,20 +168,20 @@ def render_ai_copilot_page() -> None:
                     f"Proposal #{proposal['id']} created using deterministic fallback · {get_last_gemini_status()}"
                 )
 
-    proposal = st.session_state.get("last_proposal")
+    proposal = st.session_state.get(proposal_state_key)
     if proposal:
         st.markdown(
             f"""
             <div class="sentinel-panel">
                 <div class="panel-header">
-                    <span class="panel-title">Proposal #{proposal['id']} · Action {proposal['action_id']}</span>
-                    <span class="panel-badge">{proposal['source'].upper()} · {proposal['approval_status'].upper()}</span>
+                    <span class="panel-title">Proposal #{proposal['id']} · Action {html.escape(str(proposal['action_id']))}</span>
+                    <span class="panel-badge">{html.escape(str(proposal['source']).upper())} · {html.escape(str(proposal['approval_status']).upper())}</span>
                 </div>
                 <p style="color:#CBD5E1; font-size:0.86rem;">
-                    <strong>Technical Explanation:</strong> {proposal['technical_explanation']}<br/><br/>
-                    <strong>Potential Security Impact:</strong> {proposal['security_impact']}<br/><br/>
-                    <strong>Root Cause:</strong> {proposal['root_cause']}<br/><br/>
-                    <strong>Recommended Correction:</strong> {proposal['recommended_correction']}
+                    <strong>Technical Explanation:</strong> {html.escape(str(proposal['technical_explanation']))}<br/><br/>
+                    <strong>Potential Security Impact:</strong> {html.escape(str(proposal['security_impact']))}<br/><br/>
+                    <strong>Root Cause:</strong> {html.escape(str(proposal['root_cause']))}<br/><br/>
+                    <strong>Recommended Correction:</strong> {html.escape(str(proposal['recommended_correction']))}
                 </p>
             </div>
             """,
@@ -171,18 +196,39 @@ def render_ai_copilot_page() -> None:
             st.code(proposal["corrected_config"])
 
         st.caption(f"Secure Code Example ({proposal['framework']})")
-        st.code(proposal["secure_code_example"], language="python" if proposal["framework"] in {"Flask", "Django"} else "nginx")
+        st.code(
+            proposal["secure_code_example"],
+            language="python" if proposal["framework"] in {"Flask", "Django"} else "nginx",
+        )
 
-        if st.button("Approve Proposal", key="copilot_approve_btn", type="primary"):
+        if st.button("Approve Proposal", key=f"{key_prefix}_approve_btn", type="primary"):
             set_proposal_decision(proposal["id"], decision="Approved")
             proposal["approval_status"] = "Approved"
+            st.session_state[proposal_state_key] = proposal
             st.session_state["last_proposal"] = proposal
             st.success(f"Proposal #{proposal['id']} approved! Open Developer Approval Centre to apply or verify.")
             st.rerun()
 
-        if st.button("Open Developer Approval Centre", key="goto_approval_btn"):
+        if st.button("Open Developer Approval Centre", key=f"{key_prefix}_goto_approval_btn"):
             st.session_state["active_page"] = "approval_centre"
             st.rerun()
+
+
+def render_ai_copilot_page() -> None:
+    """Render Unique Feature 3: SENTINEL AI Remediation Copilot (Gemini + Deterministic Fallback)."""
+    render_page_header(
+        kicker="ASSISTED REMEDIATION COPILOT",
+        title="AI Remediation Copilot",
+        subtitle="Generate structured remediation proposals via Google Gemini API (with deterministic fallback). Proposals require explicit developer approval.",
+        badge="GEMINI READY" if is_gemini_configured() else "FALLBACK MODE",
+    )
+
+    findings = get_findings(user_id=(st.session_state.get("auth_user") or {}).get("id"))
+    if not findings:
+        st.info("No findings recorded yet. Run a scan first to generate AI remediation proposals.")
+        return
+
+    render_ai_copilot_section(findings, key_prefix="copilot", show_section_header=False)
 
 
 def render_approval_centre_page() -> None:
