@@ -349,39 +349,30 @@ section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
 
 /* Liquid Glass Panels */
 .sentinel-panel {
-    background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(15, 23, 42, 0.72);
     border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 18px;
     padding: 1.5rem;
     margin-bottom: 1.25rem;
-    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.10);
     position: relative;
     overflow: hidden;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .sentinel-panel::before {
     content: '';
     position: absolute;
     top: 0;
-    left: -100%;
-    width: 200%;
+    left: 0;
+    right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.6), rgba(139, 92, 246, 0.6), transparent);
-    animation: glassShimmer 8s linear infinite;
-}
-
-@keyframes glassShimmer {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(50%); }
+    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.45), rgba(139, 92, 246, 0.45), transparent);
 }
 
 .sentinel-panel:hover {
     border-color: rgba(0, 240, 255, 0.32);
-    box-shadow: 0 20px 48px -10px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+    box-shadow: 0 16px 36px -10px rgba(0, 240, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .panel-header {
@@ -528,22 +519,21 @@ div.stDownloadButton > button[kind="primary"]:active {
 /* Secondary Buttons with Smooth Liquid Lift */
 div.stButton > button[kind="secondary"],
 div[data-testid="stFormSubmitButton"] > button[kind="secondary"] {
-    background: rgba(15, 23, 42, 0.6) !important;
-    backdrop-filter: blur(14px) !important;
+    background: rgba(15, 23, 42, 0.72) !important;
     color: #e2e8f0 !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 12px !important;
     font-weight: 600 !important;
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease !important;
+    transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease !important;
 }
 
 div.stButton > button[kind="secondary"]:hover,
 div[data-testid="stFormSubmitButton"] > button[kind="secondary"]:hover {
-    background: rgba(30, 41, 59, 0.85) !important;
+    background: rgba(30, 41, 59, 0.88) !important;
     border-color: rgba(0, 240, 255, 0.45) !important;
     color: #ffffff !important;
-    transform: translateY(-2px) scale(1.015) !important;
-    box-shadow: 0 8px 24px rgba(0, 240, 255, 0.22) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(0, 240, 255, 0.18) !important;
 }
 
 div.stButton > button[kind="secondary"]:active {
@@ -553,12 +543,11 @@ div.stButton > button[kind="secondary"]:active {
 /* Inputs, Selectboxes & Text Inputs */
 div[data-baseweb="input"],
 div[data-baseweb="select"] > div {
-    background: rgba(11, 17, 32, 0.75) !important;
-    backdrop-filter: blur(14px) !important;
+    background: rgba(11, 17, 32, 0.82) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 12px !important;
     color: #ffffff !important;
-    transition: all 0.25s ease !important;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease !important;
 }
 
 div[data-baseweb="input"]:focus-within,

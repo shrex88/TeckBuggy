@@ -11,6 +11,7 @@ import streamlit as st
 from config import APP_NAME, APP_TAGLINE, APP_VERSION, ASSETS_DIR, NAV_SECTIONS
 
 
+@st.cache_data
 def _brand_logo_html() -> str:
     logo_path = ASSETS_DIR / "logo.png"
     if not logo_path.exists():
@@ -24,6 +25,10 @@ def _brand_logo_html() -> str:
             'border:1px solid rgba(0,240,255,0.45);box-shadow:0 0 18px rgba(0,240,255,0.22);" />'
         )
     return '<div class="brand-shield">🛡</div>'
+
+
+def _select_nav_page(page_id: str) -> None:
+    st.session_state["active_page"] = page_id
 
 
 def render_sidebar(
@@ -50,18 +55,19 @@ def render_sidebar(
             unsafe_allow_html=True,
         )
 
-        selected = active_page
         for item in NAV_SECTIONS:
             is_active = item["id"] == active_page
             btn_type = "primary" if is_active else "secondary"
             label = f"{item['icon']}  {item['label']}"
-            if st.button(
+            st.button(
                 label,
                 key=f"nav_{item['id']}",
                 type=btn_type,
                 use_container_width=True,
-            ):
-                selected = item["id"]
+                on_click=_select_nav_page,
+                args=(item["id"],),
+            )
+        selected = st.session_state.get("active_page", active_page)
 
         st.markdown(
             f"""

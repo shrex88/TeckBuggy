@@ -240,10 +240,16 @@ div[data-testid="stAlert"] strong {
 """
 
 
+@st.cache_data
+def _read_base_css() -> str:
+    """Read and cache the base CSS stylesheet once per process."""
+    css_path = ASSETS_DIR / "style.css"
+    return css_path.read_text(encoding="utf-8") if css_path.exists() else ""
+
+
 def _load_custom_css() -> None:
     """Inject custom Sentinel AI stylesheet (with dark/light mode support)."""
-    css_path = ASSETS_DIR / "style.css"
-    css_text = css_path.read_text(encoding="utf-8") if css_path.exists() else ""
+    css_text = _read_base_css()
     if st.session_state.get("theme_mode", "dark") == "light":
         css_text = f"{css_text}\n{_LIGHT_THEME_CSS}"
     if css_text:
@@ -296,9 +302,7 @@ def main() -> None:
         total_scans=snapshot["total_scans"],
         auth_user=st.session_state["auth_user"],
     )
-    if selected_page != st.session_state["active_page"]:
-        st.session_state["active_page"] = selected_page
-        st.rerun()
+    st.session_state["active_page"] = selected_page
 
     routes = {
         "overview": lambda: render_overview_dashboard(snapshot),
