@@ -477,7 +477,8 @@ section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
 
 /* Primary CTA Buttons & Form Submit Buttons with Fluid Liquid Motion */
 div.stButton > button[kind="primary"],
-div[data-testid="stFormSubmitButton"] > button[kind="primary"],
+div[data-testid="stFormSubmitButton"] > button,
+button[kind="primaryFormSubmit"],
 div.stDownloadButton > button[kind="primary"] {
     background: linear-gradient(135deg, #00d2e6 0%, #00f0ff 40%, #8b5cf6 100%) !important;
     color: #030712 !important;

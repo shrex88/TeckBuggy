@@ -126,18 +126,19 @@ def render_landing_and_login() -> None:
             margin-bottom: 14px;
         }
         .sentinel-section-heading {
-            font-size: 1.35rem;
+            font-size: 1.5rem;
             font-weight: 800;
             color: #F8FAFC;
-            margin: 26px 0 12px 0;
+            margin: 30px 0 16px 0;
             letter-spacing: -0.01em;
             scroll-margin-top: 72px;
+            text-align: center;
         }
         .sentinel-top-nav-links {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
+            justify-content: center;
+            gap: 12px;
             padding-top: 6px;
         }
         .sentinel-nav-pill {
@@ -198,7 +199,7 @@ def render_landing_and_login() -> None:
 
     # Top Landing Bar with Brand, Features, How It Works, Sign In, Create Account, and Icon Theme Toggle
     top_brand, top_links, top_signin, top_register, top_theme = st.columns(
-        [1.9, 1.5, 0.85, 1.0, 0.45], gap="small"
+        [1.6, 1.8, 0.85, 1.0, 0.45], gap="small"
     )
     logo_html = _logo_img_html(48)
     with top_brand:
