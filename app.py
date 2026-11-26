@@ -254,13 +254,14 @@ def main() -> None:
     if "auth_user" not in st.session_state:
         st.session_state["auth_user"] = None
 
-    try:
-        init_db()
-        ensure_default_admin()
-        snapshot = get_dashboard_snapshot()
-    except DatabaseError as exc:
-        st.error(f"Database initialization error: {exc}")
-        st.stop()
+    if not st.session_state.get("_db_initialized"):
+        try:
+            init_db()
+            ensure_default_admin()
+            st.session_state["_db_initialized"] = True
+        except DatabaseError as exc:
+            st.error(f"Database initialization error: {exc}")
+            st.stop()
 
     if st.session_state["auth_user"] is None:
         render_landing_and_login()

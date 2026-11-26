@@ -151,7 +151,7 @@ def render_overview_dashboard(snapshot: dict[str, Any]) -> None:
                 st.session_state["active_page"] = "ai_copilot"
                 st.rerun()
 
-    latest_bench = get_latest_benchmark_run()
+    latest_bench = get_latest_benchmark_run() if snapshot.get("has_scans") else None
     if latest_bench is not None:
         b1, b2 = st.columns(2, gap="medium")
         b1.metric("Benchmark · High-Security App A", f"{latest_bench['high_sec_score']:.1f}/100")

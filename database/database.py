@@ -74,6 +74,7 @@ def create_db_engine(database_url: Optional[str] = None) -> Engine:
 
 _engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker[Session]] = None
+_INITIALIZED_URLS: set[str] = set()
 
 
 def get_engine(database_url: Optional[str] = None) -> Engine:
@@ -102,10 +103,12 @@ def get_engine(database_url: Optional[str] = None) -> Engine:
 
 
 def init_db(database_url: Optional[str] = None) -> Engine:
-    """Initialize all database tables safely and ensure additive columns exist."""
+    """Initialize all database tables safely and ensure additive columns exist (once per URL)."""
     try:
         resolved_url = get_db_url(database_url)
         engine = get_engine(resolved_url)
+        if resolved_url in _INITIALIZED_URLS:
+            return engine
         Base.metadata.create_all(bind=engine)
         # Additive migrations for existing SQLite databases
         if resolved_url.startswith("sqlite"):
@@ -122,6 +125,7 @@ def init_db(database_url: Optional[str] = None) -> Engine:
                         conn.commit()
                     except Exception:
                         pass
+        _INITIALIZED_URLS.add(resolved_url)
         return engine
     except SQLAlchemyError as exc:
         logger.exception("Failed to initialize database schema.")
@@ -154,6 +158,7 @@ def reset_engine() -> None:
         _engine.dispose()
     _engine = None
     _SessionLocal = None
+    _INITIALIZED_URLS.clear()
 
 
 def get_dashboard_snapshot(
@@ -637,11 +642,9 @@ def reset_scan_workspace_data(
                         )
                     )
                 )
-            # Clear orphaned benchmark runs when no scans remain
-            remaining_scans = session.scalar(select(func.count(Scan.id))) or 0
-            if remaining_scans == 0:
-                session.execute(delete(BenchmarkRun))
-                session.execute(delete(RegressionAlert))
+            # Clear benchmark runs and regression alerts tied to deleted or missing scans
+            session.execute(delete(BenchmarkRun))
+            session.execute(delete(RegressionAlert))
         else:
             for model in (
                 ConfidenceFactor,

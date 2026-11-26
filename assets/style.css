@@ -40,7 +40,7 @@ html, body, [class*="css"] {
     overflow-y: auto !important;
 }
 
-/* Floating liquid ambient light orbs animation */
+/* Floating liquid ambient light orbs animation (GPU-friendly radial glow without heavy blur) */
 .stApp::before {
     content: '';
     position: fixed;
@@ -48,12 +48,12 @@ html, body, [class*="css"] {
     left: 20%;
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.09) 0%, transparent 65%);
     border-radius: 50%;
-    filter: blur(80px);
     z-index: 0;
     pointer-events: none;
-    animation: liquidDrift 18s ease-in-out infinite alternate;
+    will-change: transform;
+    animation: liquidDrift 24s ease-in-out infinite alternate;
 }
 
 .stApp::after {
@@ -63,12 +63,12 @@ html, body, [class*="css"] {
     right: 15%;
     width: 700px;
     height: 700px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.09) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, transparent 65%);
     border-radius: 50%;
-    filter: blur(90px);
     z-index: 0;
     pointer-events: none;
-    animation: liquidDriftAlt 22s ease-in-out infinite alternate;
+    will-change: transform;
+    animation: liquidDriftAlt 28s ease-in-out infinite alternate;
 }
 
 [data-testid="stAppViewContainer"],
@@ -240,11 +240,10 @@ section[data-testid="stSidebar"] div.stButton > button {
     font-size: 0.85rem !important;
     font-weight: 600 !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    background: rgba(15, 23, 42, 0.4) !important;
+    background: rgba(15, 23, 42, 0.48) !important;
     color: var(--text-secondary) !important;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
     margin-bottom: 0.16rem !important;
-    backdrop-filter: blur(12px) !important;
     position: relative;
     overflow: hidden;
 }
