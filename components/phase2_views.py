@@ -206,47 +206,39 @@ def render_new_scan_page() -> None:
                 )
                 clean_evidence = str(item.get("evidence", "")).split(" [AI Risk Intelligence]")[0]
                 rows_html.append(
-                    f"""
-                    <tr>
-                        <td><code>{html.escape(str(item.get('rule_id', '')))}</code></td>
-                        <td><span class="severity-badge {sev_cls}">{html.escape(sev)}</span></td>
-                        <td>
-                            <div class="risk-pill-wrap">
-                                <span style="font-weight:700;min-width:38px;">{risk_val:.1f}</span>
-                                <div class="risk-bar-track">
-                                    <div class="risk-bar-fill" style="width:{min(max(risk_val, 0.0), 100.0):.0f}%;background:{bar_color};"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td style="font-weight:600;color:#f8fafc;">{html.escape(str(item.get('title', '')))}</td>
-                        <td><code>{html.escape(str(item.get('target_path', '/')))}</code></td>
-                        <td style="color:#94a3b8;font-size:0.8rem;">{html.escape(clean_evidence)}</td>
-                    </tr>
-                    """
+                    "<tr>"
+                    f"<td><code>{html.escape(str(item.get('rule_id', '')))}</code></td>"
+                    f'<td><span class="severity-badge {sev_cls}">{html.escape(sev)}</span></td>'
+                    "<td>"
+                    '<div class="risk-pill-wrap">'
+                    f'<span style="font-weight:700;min-width:38px;">{risk_val:.1f}</span>'
+                    '<div class="risk-bar-track">'
+                    f'<div class="risk-bar-fill" style="width:{min(max(risk_val, 0.0), 100.0):.0f}%;background:{bar_color};"></div>'
+                    "</div>"
+                    "</div>"
+                    "</td>"
+                    f'<td style="font-weight:600;color:#f8fafc;">{html.escape(str(item.get("title", "")))}</td>'
+                    f"<td><code>{html.escape(str(item.get('target_path', '/')))}</code></td>"
+                    f'<td style="color:#94a3b8;font-size:0.8rem;">{html.escape(clean_evidence)}</td>'
+                    "</tr>"
                 )
 
-            st.markdown(
-                f"""
-                <div class="sentinel-table-wrap">
-                    <table class="sentinel-glass-table">
-                        <thead>
-                            <tr>
-                                <th>Rule ID</th>
-                                <th>Severity</th>
-                                <th>Risk Score</th>
-                                <th>Finding</th>
-                                <th>Path</th>
-                                <th>Evidence</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {"".join(rows_html)}
-                        </tbody>
-                    </table>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            table_html = (
+                '<div class="sentinel-table-wrap">'
+                '<table class="sentinel-glass-table">'
+                "<thead><tr>"
+                "<th>Rule ID</th>"
+                "<th>Severity</th>"
+                "<th>Risk Score</th>"
+                "<th>Finding</th>"
+                "<th>Path</th>"
+                "<th>Evidence</th>"
+                "</tr></thead>"
+                f"<tbody>{''.join(rows_html)}</tbody>"
+                "</table>"
+                "</div>"
             )
+            st.markdown(table_html, unsafe_allow_html=True)
 
             g1, g2 = st.columns([1.4, 1.0], gap="medium")
             with g1:

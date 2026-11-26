@@ -200,6 +200,18 @@ code {
     color: #0369a1 !important;
     background: rgba(14, 165, 233, 0.10) !important;
 }
+pre code,
+div[data-testid="stCode"] code {
+    color: #e2e8f0 !important;
+    background: transparent !important;
+}
+div[data-testid="stAlert"],
+div[data-testid="stAlert"] p,
+div[data-testid="stAlert"] span,
+div[data-testid="stAlert"] a,
+div[data-testid="stAlert"] strong {
+    color: #f8fafc !important;
+}
 .header-pill,
 .sentinel-hero-badge {
     background: rgba(14, 165, 233, 0.12) !important;
