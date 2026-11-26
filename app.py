@@ -218,6 +218,11 @@ div[data-testid="stAlert"] strong {
     color: #0369a1 !important;
     border-color: rgba(2, 132, 199, 0.35) !important;
 }
+.ai-suggestion-card strong,
+.ai-suggestion-card div,
+.sentinel-panel strong {
+    color: #0f172a !important;
+}
 [style*="color:#F8FAFC"], [style*="color:#f8fafc"],
 [style*="color:#E2E8F0"], [style*="color:#e2e8f0"],
 [style*="color: #F8FAFC"], [style*="color: #f8fafc"] {
